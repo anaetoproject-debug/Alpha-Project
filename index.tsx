@@ -1,37 +1,45 @@
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
 /**
- * Jet Swap Bootloader
- * Ensures the DOM is ready and React 19 is mounted correctly.
+ * Jet Swap Production Bootloader
+ * This file acts as the entry point for the ESM module graph.
  */
 
-const init = () => {
-  console.log("Jet Swap: Initializing Application...");
-  const rootElement = document.getElementById('root');
+// Global error handler for module loading issues
+window.addEventListener('error', (event) => {
+  console.error('Jet Swap [Global Error]:', event.error || event.message);
+});
 
-  if (!rootElement) {
-    console.error("Jet Swap Critial Error: Root element #root not found.");
-    return;
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Jet Swap [Unhandled Promise]:', event.reason);
+});
+
+const mountApp = () => {
+  console.log("Jet Swap: System Boot Initiated...");
+  
+  const container = document.getElementById('root');
+  if (!container) {
+    throw new Error("Target container 'root' not found in document.");
   }
 
   try {
-    const root = createRoot(rootElement);
+    const root = createRoot(container);
     root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-    console.log("Jet Swap: Application Mounted Successfully.");
-  } catch (error) {
-    console.error("Jet Swap: Runtime Mounting Error:", error);
+    console.log("Jet Swap: Interface Online.");
+  } catch (err) {
+    console.error("Jet Swap: Critical Mount Failure:", err);
   }
 };
 
+// Ensure DOM is fully interactive before mounting
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', mountApp);
 } else {
-  init();
+  mountApp();
 }
