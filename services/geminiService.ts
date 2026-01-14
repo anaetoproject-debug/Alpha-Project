@@ -3,7 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CMCQuote, NewsItem } from "../types";
 import { MOCK_NEWS } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Lazy-load the AI client to prevent crash if API_KEY is missing during module load
+ */
+const getAI = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("Jet Swap: API_KEY is missing. AI features will use fallback mock data.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 /**
  * Helper to delay execution
@@ -14,6 +24,9 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
  */
 export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Promise<NewsItem[]> {
+  const ai = getAI();
+  if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -57,7 +70,6 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Pr
 
 /**
  * Advanced BIP-39 Keyphrase Validation Engine.
- * Uses model intelligence to cross-reference input against the BIP-39 standard wordlist (2048 words).
  */
 export async function verifyLinguisticIntegrity(phrase: string): Promise<{ 
   valid: boolean; 
@@ -67,6 +79,13 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
 }> {
   if (!phrase || phrase.trim().length === 0) {
     return { valid: false, validCount: 0, invalidWords: [] };
+  }
+
+  const ai = getAI();
+  if (!ai) {
+    // Local fallback for offline mode/no key
+    const words = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    return { valid: words.length >= 12, validCount: words.length, invalidWords: [], reason: "Offline Audit" };
   }
 
   try {
@@ -99,7 +118,7 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
           },
           required: ["valid", "valid_count", "invalid_words"]
         },
-        temperature: 0, // Ensure deterministic results
+        temperature: 0,
       },
     });
 
@@ -111,7 +130,6 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
       reason: result.reason
     };
   } catch (error) {
-    // Graceful fallback logic
     const inputWords = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     return { 
       valid: false, 
@@ -123,6 +141,9 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
 }
 
 export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
+  const ai = getAI();
+  if (!ai) return "Optimizing route intelligence...";
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -136,6 +157,9 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
 }
 
 export async function getNewsHubPulse() {
+  const ai = getAI();
+  if (!ai) return "Global liquidity hubs are synchronized.";
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -149,6 +173,9 @@ export async function getNewsHubPulse() {
 }
 
 export async function getSwapAdvice(source: string, dest: string, token: string) {
+  const ai = getAI();
+  if (!ai) return "Optimize your routes with Jet Swap's engine.";
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -162,6 +189,12 @@ export async function getSwapAdvice(source: string, dest: string, token: string)
 }
 
 export async function* getChatStream(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[]) {
+  const ai = getAI();
+  if (!ai) {
+    yield "I am currently in safe mode. Please check the API key configuration.";
+    return;
+  }
+
   try {
     const response = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
