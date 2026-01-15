@@ -26,7 +26,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let isRequestLocked = false;
 const requestLock = async () => {
   while (isRequestLocked) {
-    await delay(100 + Math.random() * 200);
+    await delay(200 + Math.random() * 300); // Increased delay to be safer
   }
   isRequestLocked = true;
 };
@@ -35,16 +35,16 @@ const releaseLock = () => {
 };
 
 /**
- * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
+ * Uses Gemini 2.5 Flash-Lite with Google Search grounding to fetch real-time crypto news.
  */
-export async function fetchLiveIntelligenceNews(retries = 3, backoff = 2000): Promise<NewsItem[]> {
+export async function fetchLiveIntelligenceNews(retries = 3, backoff = 3000): Promise<NewsItem[]> {
   const ai = getAI();
   if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
 
   await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash-lite",
       tools: [{ "googleSearch": {} }],
     });
     const result = await model.generateContent("Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each, and a URL for each.");
@@ -73,7 +73,7 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 2000): Pr
 /**
  * Advanced BIP-39 Keyphrase Validation Engine with retry logic.
  */
-export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 2000): Promise<{ 
+export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 3000): Promise<{ 
   valid: boolean; 
   validCount: number; 
   invalidWords: string[];
@@ -92,7 +92,7 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   await requestLock();
   try {
     const model = ai.getGenerativeModel({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash-lite",
       generationConfig: { responseMimeType: "application/json", temperature: 0 }
     });
     const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". Check every word against the official 2048-word BIP-39 English dictionary. A valid phrase has exactly 12 words. List any words NOT found as 'invalid_words'. OUTPUT FORMAT: {\"valid\": boolean, \"valid_count\": number, \"invalid_words\": [\"string\"], \"reason\": \"string\"}`);
@@ -119,13 +119,13 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
 /**
  * Fetches deep market analysis with retry logic.
  */
-export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 2000): Promise<string> {
+export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 3000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimizing route intelligence...";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
   } catch (error: any) {
@@ -143,13 +143,13 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retr
 /**
  * Fetches a news hub pulse with retry logic.
  */
-export async function getNewsHubPulse(retries = 3, backoff = 2000): Promise<string> {
+export async function getNewsHubPulse(retries = 3, backoff = 3000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Global liquidity hubs are synchronized.";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.8 }});
     const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
     return (await result.response).text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
   } catch (error: any) {
@@ -167,13 +167,13 @@ export async function getNewsHubPulse(retries = 3, backoff = 2000): Promise<stri
 /**
  * Fetches swap advice with retry logic.
  */
-export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 2000): Promise<string> {
+export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 3000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
   } catch (error: any) {
@@ -201,7 +201,7 @@ export async function* getChatStream(message: string, history: Content[]) {
   await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash-lite",
       systemInstruction: 'Jet Support Assistant. Plain text. No markdown.',
     });
     const result = await model.generateContentStream({
