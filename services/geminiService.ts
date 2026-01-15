@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI, Content } from "@google/generative-ai";
 import { CMCQuote, NewsItem } from "../types";
 import { MOCK_NEWS } from "../constants";
 
@@ -7,12 +7,12 @@ import { MOCK_NEWS } from "../constants";
  * Lazy-load the AI client to prevent crash if API_KEY is missing during module load
  */
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = import.meta.env.VITE_API_KEY;
   if (!apiKey) {
     console.warn("Jet Swap: API_KEY is missing. AI features will use fallback mock data.");
     return null;
   }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenerativeAI(apiKey);
 };
 
 /**
@@ -21,38 +21,27 @@ const getAI = () => {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
+ * Uses Gemini 1.5 Flash with Google Search grounding to fetch real-time crypto news.
  */
 export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Promise<NewsItem[]> {
   const ai = getAI();
   if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each.",
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              summary: { type: Type.STRING },
-              category: { type: Type.STRING },
-              timestamp: { type: Type.STRING },
-              source: { type: Type.STRING },
-              url: { type: Type.STRING }
-            },
-            required: ["title", "summary", "category", "timestamp", "source", "url"]
-          }
-        }
-      },
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      tools: [{ "googleSearch": {} }],
     });
+    const result = await model.generateContent("Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each, and a URL for each.");
+    const response = await result.response;
+    const toolCalls = response.functionCalls();
+    if (toolCalls) {
+      // For simplicity, we are not handling tool calls here.
+      // In a real application, you would make the tool calls and send the results back to the model.
+    }
 
-    const newsData = JSON.parse(response.text || "[]");
+
+    const newsData = JSON.parse(response.text() || "[]");
     return newsData.map((item: any, index: number) => ({
       ...item,
       id: `ai-news-${index}-${Date.now()}`,
@@ -89,9 +78,14 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `You are a BIP-39 Security Audit Tool. Analyze this phrase: "${phrase}".
+    const model = ai.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0,
+      }
+    });
+    const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\".
       
       CRITICAL INSTRUCTIONS:
       1. Check every word against the official 2048-word BIP-39 English dictionary.
@@ -101,33 +95,18 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
       
       OUTPUT FORMAT (JSON):
       {
-        "valid": boolean,
-        "valid_count": number,
-        "invalid_words": ["string"],
-        "reason": "string"
-      }`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            valid: { type: Type.BOOLEAN },
-            valid_count: { type: Type.NUMBER },
-            invalid_words: { type: Type.ARRAY, items: { type: Type.STRING } },
-            reason: { type: Type.STRING }
-          },
-          required: ["valid", "valid_count", "invalid_words"]
-        },
-        temperature: 0,
-      },
-    });
-
-    const result = JSON.parse(response.text || '{}');
+        \"valid\": boolean,
+        \"valid_count\": number,
+        \"invalid_words\": [\"string\"],
+        \"reason\": \"string\"
+      }`);
+    const response = await result.response;
+    const validationResult = JSON.parse(response.text() || '{}');
     return {
-      valid: result.valid === true && result.valid_count >= 12,
-      validCount: result.valid_count || 0,
-      invalidWords: result.invalid_words || [],
-      reason: result.reason
+      valid: validationResult.valid === true && validationResult.valid_count >= 12,
+      validCount: validationResult.valid_count || 0,
+      invalidWords: validationResult.invalid_words || [],
+      reason: validationResult.reason
     };
   } catch (error) {
     const inputWords = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
@@ -145,12 +124,10 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
   if (!ai) return "Optimizing route intelligence...";
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`,
-      config: { temperature: 0.6 },
-    });
-    return response.text?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.6 }});
+    const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
+    const response = await result.response;
+    return response.text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
   } catch (error) {
     return "Optimizing route intelligence...";
   }
@@ -161,12 +138,10 @@ export async function getNewsHubPulse() {
   if (!ai) return "Global liquidity hubs are synchronized.";
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.",
-      config: { temperature: 0.8 },
-    });
-    return response.text?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.8 }});
+    const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
+    const response = await result.response;
+    return response.text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
   } catch (error) {
     return "Global liquidity hubs are synchronized.";
   }
@@ -177,18 +152,16 @@ export async function getSwapAdvice(source: string, dest: string, token: string)
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`,
-      config: { temperature: 0.7 },
-    });
-    return response.text?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.7 }});
+    const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
+    const response = await result.response;
+    return response.text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
   } catch (error) {
     return "Optimize your routes with Jet Swap's engine.";
   }
 }
 
-export async function* getChatStream(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[]) {
+export async function* getChatStream(message: string, history: Content[]) {
   const ai = getAI();
   if (!ai) {
     yield "I am currently in safe mode. Please check the API key configuration.";
@@ -196,16 +169,18 @@ export async function* getChatStream(message: string, history: { role: 'user' | 
   }
 
   try {
-    const response = await ai.models.generateContentStream({
-      model: "gemini-3-flash-preview",
-      contents: [...history, { role: 'user', parts: [{ text: message }] }],
-      config: {
-        systemInstruction: `Jet Support Assistant. Plain text. No markdown.`,
-        temperature: 0.8,
-      },
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: 'Jet Support Assistant. Plain text. No markdown.',
     });
-    for await (const chunk of response) {
-      if (chunk.text) yield chunk.text.replace(/\*/g, '');
+    const result = await model.generateContentStream({
+        contents: [...history, { role: 'user', parts: [{ text: message }] }],
+        generationConfig: {
+            temperature: 0.8,
+        },
+    });
+    for await (const chunk of result.stream) {
+      if (chunk.text) yield chunk.text().replace(/\*/g, '');
     }
   } catch (error) {
     yield "Operational drift detected.";
