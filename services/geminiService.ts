@@ -16,12 +16,12 @@ const getAI = () => {
 };
 
 /**
- * Helper to delay execution
+ * Helper to delay execution for exponential backoff
  */
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Uses Gemini 1.5 Flash with Google Search grounding to fetch real-time crypto news.
+ * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
  */
 export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Promise<NewsItem[]> {
   const ai = getAI();
@@ -34,13 +34,6 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Pr
     });
     const result = await model.generateContent("Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each, and a URL for each.");
     const response = await result.response;
-    const toolCalls = response.functionCalls();
-    if (toolCalls) {
-      // For simplicity, we are not handling tool calls here.
-      // In a real application, you would make the tool calls and send the results back to the model.
-    }
-
-
     const newsData = JSON.parse(response.text() || "[]");
     return newsData.map((item: any, index: number) => ({
       ...item,
@@ -49,18 +42,20 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Pr
       fullText: item.summary
     }));
   } catch (error: any) {
-    if (retries > 0 && (error?.message?.includes('429') || error?.status === 'RESOURCE_EXHAUSTED')) {
+    if (retries > 0 && error?.message?.includes('429')) {
+      console.warn(`[news] Rate limited. Retrying in ${backoff}ms...`);
       await delay(backoff);
       return fetchLiveIntelligenceNews(retries - 1, backoff * 2);
     }
+    console.error("[news] Fetch failed, returning mock data:", error);
     return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
   }
 }
 
 /**
- * Advanced BIP-39 Keyphrase Validation Engine.
+ * Advanced BIP-39 Keyphrase Validation Engine with retry logic.
  */
-export async function verifyLinguisticIntegrity(phrase: string): Promise<{ 
+export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 1000): Promise<{ 
   valid: boolean; 
   validCount: number; 
   invalidWords: string[];
@@ -72,7 +67,6 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
 
   const ai = getAI();
   if (!ai) {
-    // Local fallback for offline mode/no key
     const words = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     return { valid: words.length >= 12, validCount: words.length, invalidWords: [], reason: "Offline Audit" };
   }
@@ -80,87 +74,89 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
   try {
     const model = ai.getGenerativeModel({
       model: "gemini-3-flash-preview",
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0,
-      }
+      generationConfig: { responseMimeType: "application/json", temperature: 0 }
     });
-    const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\".
-      
-      CRITICAL INSTRUCTIONS:
-      1. Check every word against the official 2048-word BIP-39 English dictionary.
-      2. Count only words that exist exactly in that dictionary.
-      3. A valid phrase must contain exactly 12, 15, 18, 21, or 24 words. For this specific check, we look for exactly 12.
-      4. List any words NOT found in the BIP-39 standard as 'invalid_words'.
-      
-      OUTPUT FORMAT (JSON):
-      {
-        \"valid\": boolean,
-        \"valid_count\": number,
-        \"invalid_words\": [\"string\"],
-        \"reason\": \"string\"
-      }`);
-    const response = await result.response;
-    const validationResult = JSON.parse(response.text() || '{}');
+    const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". Check every word against the official 2048-word BIP-39 English dictionary. A valid phrase has exactly 12 words. List any words NOT found as 'invalid_words'. OUTPUT FORMAT: {\"valid\": boolean, \"valid_count\": number, \"invalid_words\": [\"string\"], \"reason\": \"string\"}`);
+    const validationResult = JSON.parse((await result.response).text() || '{}');
     return {
       valid: validationResult.valid === true && validationResult.valid_count >= 12,
       validCount: validationResult.valid_count || 0,
       invalidWords: validationResult.invalid_words || [],
       reason: validationResult.reason
     };
-  } catch (error) {
-    const inputWords = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
-    return { 
-      valid: false, 
-      validCount: 0, 
-      invalidWords: [], 
-      reason: "Network connection disrupted during audit." 
-    };
+  } catch (error: any) {
+    if (retries > 0 && error?.message?.includes('429')) {
+      console.warn(`[validator] Rate limited. Retrying in ${backoff}ms...`);
+      await delay(backoff);
+      return verifyLinguisticIntegrity(phrase, retries - 1, backoff * 2);
+    }
+    return { valid: false, validCount: 0, invalidWords: [], reason: "Network connection disrupted during audit." };
   }
 }
 
-export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
+/**
+ * Fetches deep market analysis with retry logic.
+ */
+export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 1000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimizing route intelligence...";
 
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
-    const response = await result.response;
-    return response.text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
-  } catch (error) {
+    return (await result.response).text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
+  } catch (error: any) {
+    if (retries > 0 && error?.message?.includes('429')) {
+      await delay(backoff);
+      return getDeepMarketAnalysis(token, quote, retries - 1, backoff * 2);
+    }
     return "Optimizing route intelligence...";
   }
 }
 
-export async function getNewsHubPulse() {
+/**
+ * Fetches a news hub pulse with retry logic.
+ */
+export async function getNewsHubPulse(retries = 3, backoff = 1000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Global liquidity hubs are synchronized.";
 
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
     const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
-    const response = await result.response;
-    return response.text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
-  } catch (error) {
+    return (await result.response).text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
+  } catch (error: any) {
+    if (retries > 0 && error?.message?.includes('429')) {
+      await delay(backoff);
+      return getNewsHubPulse(retries - 1, backoff * 2);
+    }
     return "Global liquidity hubs are synchronized.";
   }
 }
 
-export async function getSwapAdvice(source: string, dest: string, token: string) {
+/**
+ * Fetches swap advice with retry logic.
+ */
+export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 1000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
-    const response = await result.response;
-    return response.text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
-  } catch (error) {
+    return (await result.response).text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
+  } catch (error: any) {
+    if (retries > 0 && error?.message?.includes('429')) {
+      await delay(backoff);
+      return getSwapAdvice(source, dest, token, retries - 1, backoff * 2);
+    }
     return "Optimize your routes with Jet Swap's engine.";
   }
 }
 
+/**
+ * Generative chat stream. Note: Retry logic is not applied to streams.
+ */
 export async function* getChatStream(message: string, history: Content[]) {
   const ai = getAI();
   if (!ai) {
@@ -175,14 +171,13 @@ export async function* getChatStream(message: string, history: Content[]) {
     });
     const result = await model.generateContentStream({
         contents: [...history, { role: 'user', parts: [{ text: message }] }],
-        generationConfig: {
-            temperature: 0.8,
-        },
+        generationConfig: { temperature: 0.8 },
     });
     for await (const chunk of result.stream) {
       if (chunk.text) yield chunk.text().replace(/\*/g, '');
     }
   } catch (error) {
+    console.error("[chat] Stream failed:", error);
     yield "Operational drift detected.";
   }
 }
