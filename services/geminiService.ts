@@ -26,13 +26,34 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let isRequestLocked = false;
 const requestLock = async () => {
   while (isRequestLocked) {
-    await delay(200 + Math.random() * 300); // Increased delay to be safer
+    await delay(200 + Math.random() * 300);
   }
   isRequestLocked = true;
 };
 const releaseLock = () => {
   isRequestLocked = false;
 };
+
+/**
+ * Robust JSON parsing from AI response
+ */
+function parseAIResponse(text: string) {
+  try {
+    // Attempt 1: Direct parse
+    return JSON.parse(text);
+  } catch (e) {
+    // Attempt 2: Extract from markdown code block
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (match) {
+      try {
+        return JSON.parse(match[1]);
+      } catch (e2) {
+        console.error("Failed to parse extracted JSON:", e2);
+      }
+    }
+    throw new Error("Could not parse AI response as JSON");
+  }
+}
 
 /**
  * Uses Gemini 2.5 Flash-Lite with Google Search grounding to fetch real-time crypto news.
@@ -46,10 +67,19 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 3000): Pr
     const model = ai.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       tools: [{ "googleSearch": {} }],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
     });
-    const result = await model.generateContent("Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each, and a URL for each.");
+    
+    const prompt = `Search for the latest 5 crypto market news headlines from the last 24 hours. 
+    Return an ARRAY of objects with these properties: title, summary, category, timestamp, source, url.
+    Strictly follow this JSON schema: Array<{title: string, summary: string, category: string, timestamp: string, source: string, url: string}>`;
+
+    const result = await model.generateContent(prompt);
     const response = await result.response;
-    const newsData = JSON.parse(response.text() || "[]");
+    const newsData = parseAIResponse(response.text() || "[]");
+    
     return newsData.map((item: any, index: number) => ({
       ...item,
       id: `ai-news-${index}-${Date.now()}`,
@@ -93,10 +123,13 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   try {
     const model = ai.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
-      generationConfig: { responseMimeType: "application/json", temperature: 0 }
+      generationConfig: { 
+        responseMimeType: "application/json", 
+        temperature: 0 
+      }
     });
     const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". Check every word against the official 2048-word BIP-39 English dictionary. A valid phrase has exactly 12 words. List any words NOT found as 'invalid_words'. OUTPUT FORMAT: {\"valid\": boolean, \"valid_count\": number, \"invalid_words\": [\"string\"], \"reason\": \"string\"}`);
-    const validationResult = JSON.parse((await result.response).text() || '{}');
+    const validationResult = parseAIResponse((await result.response).text() || '{}');
     return {
       valid: validationResult.valid === true && validationResult.valid_count >= 12,
       validCount: validationResult.valid_count || 0,
