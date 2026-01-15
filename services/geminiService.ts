@@ -8,8 +8,8 @@ import { MOCK_NEWS } from "../constants";
  */
 const getAI = () => {
   const apiKey = import.meta.env.VITE_API_KEY;
-  if (!apiKey) {
-    console.warn("Jet Swap: API_KEY is missing. AI features will use fallback mock data.");
+  if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+    console.warn("Jet Swap: API_KEY is missing or not set. AI features will use fallback mock data.");
     return null;
   }
   return new GoogleGenerativeAI(apiKey);
@@ -26,7 +26,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let isRequestLocked = false;
 const requestLock = async () => {
   while (isRequestLocked) {
-    await delay(200 + Math.random() * 300);
+    await delay(300 + Math.random() * 200);
   }
   isRequestLocked = true;
 };
@@ -38,6 +38,7 @@ const releaseLock = () => {
  * Robust JSON parsing from AI response
  */
 function parseAIResponse(text: string) {
+  if (!text) return [];
   try {
     // Attempt 1: Direct parse
     return JSON.parse(text);
@@ -48,8 +49,15 @@ function parseAIResponse(text: string) {
       try {
         return JSON.parse(match[1]);
       } catch (e2) {
-        console.error("Failed to parse extracted JSON:", e2);
+        console.error("Failed to parse extracted JSON from block:", e2);
       }
+    }
+    // Attempt 3: Try to find any array or object structure
+    const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (arrayMatch) {
+        try {
+            return JSON.parse(arrayMatch[0]);
+        } catch (e3) {}
     }
     throw new Error("Could not parse AI response as JSON");
   }
@@ -58,7 +66,7 @@ function parseAIResponse(text: string) {
 /**
  * Uses Gemini 2.5 Flash-Lite with Google Search grounding to fetch real-time crypto news.
  */
-export async function fetchLiveIntelligenceNews(retries = 3, backoff = 3000): Promise<NewsItem[]> {
+export async function fetchLiveIntelligenceNews(retries = 3, backoff = 4000): Promise<NewsItem[]> {
   const ai = getAI();
   if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
 
@@ -67,21 +75,28 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 3000): Pr
     const model = ai.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       tools: [{ "googleSearch": {} }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
+      // CRITICAL: We DO NOT set responseMimeType: "application/json" here 
+      // because the Gemini API currently does not support tool use combined with JSON mode.
     });
     
     const prompt = `Search for the latest 5 crypto market news headlines from the last 24 hours. 
-    Return an ARRAY of objects with these properties: title, summary, category, timestamp, source, url.
-    Strictly follow this JSON schema: Array<{title: string, summary: string, category: string, timestamp: string, source: string, url: string}>`;
+    Return ONLY a JSON ARRAY of objects with these properties: title, summary, category, timestamp, source, url.
+    Do not include any conversational text.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const newsData = parseAIResponse(response.text() || "[]");
+    const text = response.text();
+    const newsData = parseAIResponse(text);
     
+    if (!Array.isArray(newsData)) throw new Error("AI did not return an array");
+
     return newsData.map((item: any, index: number) => ({
-      ...item,
+      title: item.title || "Market Update",
+      summary: item.summary || "No summary available.",
+      category: item.category || "Market News",
+      timestamp: item.timestamp || "Just now",
+      source: item.source || "External Feed",
+      url: item.url || "#",
       id: `ai-news-${index}-${Date.now()}`,
       image: `https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600&sig=${index}`,
       fullText: item.summary
@@ -103,7 +118,7 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 3000): Pr
 /**
  * Advanced BIP-39 Keyphrase Validation Engine with retry logic.
  */
-export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 3000): Promise<{ 
+export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 4000): Promise<{ 
   valid: boolean; 
   validCount: number; 
   invalidWords: string[];
@@ -129,7 +144,7 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
       }
     });
     const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". Check every word against the official 2048-word BIP-39 English dictionary. A valid phrase has exactly 12 words. List any words NOT found as 'invalid_words'. OUTPUT FORMAT: {\"valid\": boolean, \"valid_count\": number, \"invalid_words\": [\"string\"], \"reason\": \"string\"}`);
-    const validationResult = parseAIResponse((await result.response).text() || '{}');
+    const validationResult = parseAIResponse((await result.response).text());
     return {
       valid: validationResult.valid === true && validationResult.valid_count >= 12,
       validCount: validationResult.valid_count || 0,
@@ -152,7 +167,7 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
 /**
  * Fetches deep market analysis with retry logic.
  */
-export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 3000): Promise<string> {
+export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimizing route intelligence...";
 
@@ -176,7 +191,7 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retr
 /**
  * Fetches a news hub pulse with retry logic.
  */
-export async function getNewsHubPulse(retries = 3, backoff = 3000): Promise<string> {
+export async function getNewsHubPulse(retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Global liquidity hubs are synchronized.";
 
@@ -200,7 +215,7 @@ export async function getNewsHubPulse(retries = 3, backoff = 3000): Promise<stri
 /**
  * Fetches swap advice with retry logic.
  */
-export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 3000): Promise<string> {
+export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
