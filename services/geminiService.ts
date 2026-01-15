@@ -29,7 +29,7 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Pr
 
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       tools: [{ "googleSearch": {} }],
     });
     const result = await model.generateContent("Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each, and a URL for each.");
@@ -79,7 +79,7 @@ export async function verifyLinguisticIntegrity(phrase: string): Promise<{
 
   try {
     const model = ai.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0,
@@ -124,7 +124,7 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
   if (!ai) return "Optimizing route intelligence...";
 
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.6 }});
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
     const response = await result.response;
     return response.text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
@@ -138,7 +138,7 @@ export async function getNewsHubPulse() {
   if (!ai) return "Global liquidity hubs are synchronized.";
 
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.8 }});
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
     const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
     const response = await result.response;
     return response.text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
@@ -152,7 +152,7 @@ export async function getSwapAdvice(source: string, dest: string, token: string)
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { temperature: 0.7 }});
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
     const response = await result.response;
     return response.text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
@@ -170,7 +170,7 @@ export async function* getChatStream(message: string, history: Content[]) {
 
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       systemInstruction: 'Jet Support Assistant. Plain text. No markdown.',
     });
     const result = await model.generateContentStream({
