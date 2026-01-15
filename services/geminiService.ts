@@ -21,12 +21,27 @@ const getAI = () => {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
+ * Global Request Lock to prevent simultaneous calls hitting the rate limit
+ */
+let isRequestLocked = false;
+const requestLock = async () => {
+  while (isRequestLocked) {
+    await delay(100 + Math.random() * 200);
+  }
+  isRequestLocked = true;
+};
+const releaseLock = () => {
+  isRequestLocked = false;
+};
+
+/**
  * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
  */
-export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Promise<NewsItem[]> {
+export async function fetchLiveIntelligenceNews(retries = 3, backoff = 2000): Promise<NewsItem[]> {
   const ai = getAI();
   if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
       model: "gemini-3-flash-preview",
@@ -44,18 +59,21 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Pr
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
       console.warn(`[news] Rate limited. Retrying in ${backoff}ms...`);
+      releaseLock();
       await delay(backoff);
       return fetchLiveIntelligenceNews(retries - 1, backoff * 2);
     }
-    console.error("[news] Fetch failed, returning mock data:", error);
+    console.error("[news] Fetch failed:", error);
     return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
+  } finally {
+    releaseLock();
   }
 }
 
 /**
  * Advanced BIP-39 Keyphrase Validation Engine with retry logic.
  */
-export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 1000): Promise<{ 
+export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 2000): Promise<{ 
   valid: boolean; 
   validCount: number; 
   invalidWords: string[];
@@ -71,6 +89,7 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
     return { valid: words.length >= 12, validCount: words.length, invalidWords: [], reason: "Offline Audit" };
   }
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({
       model: "gemini-3-flash-preview",
@@ -87,75 +106,90 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
       console.warn(`[validator] Rate limited. Retrying in ${backoff}ms...`);
+      releaseLock();
       await delay(backoff);
       return verifyLinguisticIntegrity(phrase, retries - 1, backoff * 2);
     }
     return { valid: false, validCount: 0, invalidWords: [], reason: "Network connection disrupted during audit." };
+  } finally {
+    releaseLock();
   }
 }
 
 /**
  * Fetches deep market analysis with retry logic.
  */
-export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 1000): Promise<string> {
+export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 2000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimizing route intelligence...";
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
+      releaseLock();
       await delay(backoff);
       return getDeepMarketAnalysis(token, quote, retries - 1, backoff * 2);
     }
     return "Optimizing route intelligence...";
+  } finally {
+    releaseLock();
   }
 }
 
 /**
  * Fetches a news hub pulse with retry logic.
  */
-export async function getNewsHubPulse(retries = 3, backoff = 1000): Promise<string> {
+export async function getNewsHubPulse(retries = 3, backoff = 2000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Global liquidity hubs are synchronized.";
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
     const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
     return (await result.response).text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
+      releaseLock();
       await delay(backoff);
       return getNewsHubPulse(retries - 1, backoff * 2);
     }
     return "Global liquidity hubs are synchronized.";
+  } finally {
+    releaseLock();
   }
 }
 
 /**
  * Fetches swap advice with retry logic.
  */
-export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 1000): Promise<string> {
+export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 2000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
+      releaseLock();
       await delay(backoff);
       return getSwapAdvice(source, dest, token, retries - 1, backoff * 2);
     }
     return "Optimize your routes with Jet Swap's engine.";
+  } finally {
+    releaseLock();
   }
 }
 
 /**
- * Generative chat stream. Note: Retry logic is not applied to streams.
+ * Generative chat stream.
  */
 export async function* getChatStream(message: string, history: Content[]) {
   const ai = getAI();
@@ -164,6 +198,7 @@ export async function* getChatStream(message: string, history: Content[]) {
     return;
   }
 
+  await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
       model: "gemini-3-flash-preview",
@@ -179,5 +214,7 @@ export async function* getChatStream(message: string, history: Content[]) {
   } catch (error) {
     console.error("[chat] Stream failed:", error);
     yield "Operational drift detected.";
+  } finally {
+    releaseLock();
   }
 }
