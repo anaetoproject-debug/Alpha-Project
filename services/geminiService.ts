@@ -2,14 +2,15 @@
 import { GoogleGenerativeAI, Content } from "@google/generative-ai";
 import { CMCQuote, NewsItem } from "../types";
 import { MOCK_NEWS } from "../constants";
+import { getLatestCryptoNews } from "./cmcService";
 
 /**
- * Lazy-load the AI client to prevent crash if API_KEY is missing during module load
+ * Lazy-load the AI client
  */
 const getAI = () => {
   const apiKey = import.meta.env.VITE_API_KEY;
   if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
-    console.warn("Jet Swap: API_KEY is missing or not set. AI features will use fallback mock data.");
+    console.warn("Jet Swap: API_KEY is missing. AI features will use fallback mock data.");
     return null;
   }
   return new GoogleGenerativeAI(apiKey);
@@ -40,83 +41,95 @@ const releaseLock = () => {
 function parseAIResponse(text: string) {
   if (!text) return [];
   try {
-    // Attempt 1: Direct parse
     return JSON.parse(text);
   } catch (e) {
-    // Attempt 2: Extract from markdown code block
     const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (match) {
       try {
         return JSON.parse(match[1]);
-      } catch (e2) {
-        console.error("Failed to parse extracted JSON from block:", e2);
-      }
+      } catch (e2) {}
     }
-    // Attempt 3: Try to find any array or object structure
     const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (arrayMatch) {
         try {
             return JSON.parse(arrayMatch[0]);
         } catch (e3) {}
     }
+    const objMatch = text.match(/\{\s*[\s\S]*\s*\}/);
+    if (objMatch) {
+        try {
+            return JSON.parse(objMatch[0]);
+        } catch (e4) {}
+    }
     throw new Error("Could not parse AI response as JSON");
   }
 }
 
 /**
- * Uses Gemini 2.5 Flash-Lite with Google Search grounding to fetch real-time crypto news.
+ * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
+ * Implements a Multi-Layered Data Pipeline: Primary (AI) -> Secondary (CMC) -> Tertiary (Mock)
  */
 export async function fetchLiveIntelligenceNews(retries = 3, backoff = 4000): Promise<NewsItem[]> {
   const ai = getAI();
-  if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
+  
+  if (ai) {
+    await requestLock();
+    try {
+      const model = ai.getGenerativeModel({ 
+        model: "gemini-3-flash-preview",
+        tools: [{ "googleSearch": {} }],
+      });
+      
+      const prompt = `Search for the latest 5 crypto market news headlines from the last 24 hours. 
+      Return ONLY a JSON ARRAY of objects with these properties: title, summary, category, timestamp, source, url.
+      Do not include any conversational text.`;
 
-  await requestLock();
-  try {
-    const model = ai.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite",
-      tools: [{ "googleSearch": {} }],
-      // CRITICAL: We DO NOT set responseMimeType: "application/json" here 
-      // because the Gemini API currently does not support tool use combined with JSON mode.
-    });
-    
-    const prompt = `Search for the latest 5 crypto market news headlines from the last 24 hours. 
-    Return ONLY a JSON ARRAY of objects with these properties: title, summary, category, timestamp, source, url.
-    Do not include any conversational text.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    const newsData = parseAIResponse(text);
-    
-    if (!Array.isArray(newsData)) throw new Error("AI did not return an array");
-
-    return newsData.map((item: any, index: number) => ({
-      title: item.title || "Market Update",
-      summary: item.summary || "No summary available.",
-      category: item.category || "Market News",
-      timestamp: item.timestamp || "Just now",
-      source: item.source || "External Feed",
-      url: item.url || "#",
-      id: `ai-news-${index}-${Date.now()}`,
-      image: `https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600&sig=${index}`,
-      fullText: item.summary
-    }));
-  } catch (error: any) {
-    if (retries > 0 && error?.message?.includes('429')) {
-      console.warn(`[news] Rate limited. Retrying in ${backoff}ms...`);
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      const newsData = parseAIResponse(text);
+      
+      if (Array.isArray(newsData) && newsData.length > 0) {
+        return newsData.map((item: any, index: number) => ({
+          title: item.title || "Market Update",
+          summary: item.summary || "No summary available.",
+          category: item.category || "Market News",
+          timestamp: item.timestamp || "Just now",
+          source: item.source || "External Feed",
+          url: item.url || "#",
+          id: `ai-news-${index}-${Date.now()}`,
+          image: `https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600&sig=${index}`,
+          fullText: item.summary
+        }));
+      }
+    } catch (error: any) {
+      if (retries > 0 && error?.message?.includes('429')) {
+        console.warn(`[news] Rate limited. Retrying in ${backoff}ms...`);
+        releaseLock();
+        await delay(backoff);
+        return fetchLiveIntelligenceNews(retries - 1, backoff * 2);
+      }
+      console.error("[news] AI Layer failed, falling back to CMC:", error);
+    } finally {
       releaseLock();
-      await delay(backoff);
-      return fetchLiveIntelligenceNews(retries - 1, backoff * 2);
     }
-    console.error("[news] Fetch failed:", error);
-    return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
-  } finally {
-    releaseLock();
   }
+
+  try {
+    const cmcNews = await getLatestCryptoNews();
+    if (cmcNews && cmcNews.length > 0) {
+      return cmcNews;
+    }
+  } catch (error) {
+    console.error("[news] CMC Layer failed, falling back to Mocks:", error);
+  }
+
+  return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
 }
 
 /**
- * Advanced BIP-39 Keyphrase Validation Engine with retry logic.
+ * Advanced BIP-39 Keyphrase Validation Engine.
+ * Tier 2: Linguistic Integrity (The "AI Audit" Layer)
  */
 export async function verifyLinguisticIntegrity(phrase: string, retries = 3, backoff = 4000): Promise<{ 
   valid: boolean; 
@@ -137,14 +150,31 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   await requestLock();
   try {
     const model = ai.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3-flash-preview",
       generationConfig: { 
         responseMimeType: "application/json", 
-        temperature: 0 
+        temperature: 0 // Deterministic Audit
       }
     });
-    const result = await model.generateContent(`You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". Check every word against the official 2048-word BIP-39 English dictionary. A valid phrase has exactly 12 words. List any words NOT found as 'invalid_words'. OUTPUT FORMAT: {\"valid\": boolean, \"valid_count\": number, \"invalid_words\": [\"string\"], \"reason\": \"string\"}`);
+
+    const prompt = `You are a BIP-39 Security Audit Tool. Analyze this phrase: \"${phrase}\". 
+    
+    CRITICAL INSTRUCTIONS:
+    1. Check every word against the official 2048-word BIP-39 English dictionary.
+    2. A valid phrase must contain exactly 12 words and be structurally sound (not repeated words or gibberish).
+    3. List any words NOT found in the BIP-39 standard as 'invalid_words'.
+    
+    OUTPUT FORMAT (JSON):
+    {
+      \"valid\": boolean,
+      \"valid_count\": number,
+      \"invalid_words\": [\"string\"],
+      \"reason\": \"string\"
+    }`;
+
+    const result = await model.generateContent(prompt);
     const validationResult = parseAIResponse((await result.response).text());
+    
     return {
       valid: validationResult.valid === true && validationResult.valid_count >= 12,
       validCount: validationResult.valid_count || 0,
@@ -164,16 +194,13 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   }
 }
 
-/**
- * Fetches deep market analysis with retry logic.
- */
 export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimizing route intelligence...";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.6 }});
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
   } catch (error: any) {
@@ -188,17 +215,14 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retr
   }
 }
 
-/**
- * Fetches a news hub pulse with retry logic.
- */
 export async function getNewsHubPulse(retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Global liquidity hubs are synchronized.";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.8 }});
-    const result = await model.generateContent("Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.");
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
+    const result = await model.generateContent("Generate a one-sentence market vibe summary for Jet Swap. Max 20 words.");
     return (await result.response).text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
   } catch (error: any) {
     if (retries > 0 && error?.message?.includes('429')) {
@@ -212,16 +236,13 @@ export async function getNewsHubPulse(retries = 3, backoff = 4000): Promise<stri
   }
 }
 
-/**
- * Fetches swap advice with retry logic.
- */
 export async function getSwapAdvice(source: string, dest: string, token: string, retries = 3, backoff = 4000): Promise<string> {
   const ai = getAI();
   if (!ai) return "Optimize your routes with Jet Swap's engine.";
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-lite", generationConfig: { temperature: 0.7 }});
+    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
   } catch (error: any) {
@@ -236,9 +257,6 @@ export async function getSwapAdvice(source: string, dest: string, token: string,
   }
 }
 
-/**
- * Generative chat stream.
- */
 export async function* getChatStream(message: string, history: Content[]) {
   const ai = getAI();
   if (!ai) {
@@ -249,7 +267,7 @@ export async function* getChatStream(message: string, history: Content[]) {
   await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3-flash-preview",
       systemInstruction: 'Jet Support Assistant. Plain text. No markdown.',
     });
     const result = await model.generateContentStream({
