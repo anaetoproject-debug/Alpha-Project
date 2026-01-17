@@ -66,7 +66,7 @@ function parseAIResponse(text: string) {
 }
 
 /**
- * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
+ * Uses Gemini 2.5 Pro with Google Search grounding to fetch real-time crypto news.
  * Implements a Multi-Layered Data Pipeline: Primary (AI) -> Secondary (CMC) -> Tertiary (Mock)
  */
 export async function fetchLiveIntelligenceNews(retries = 3, backoff = 4000): Promise<NewsItem[]> {
@@ -76,7 +76,7 @@ export async function fetchLiveIntelligenceNews(retries = 3, backoff = 4000): Pr
     await requestLock();
     try {
       const model = ai.getGenerativeModel({ 
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-pro",
         tools: [{ "googleSearch": {} }],
       });
       
@@ -150,10 +150,10 @@ export async function verifyLinguisticIntegrity(phrase: string, retries = 3, bac
   await requestLock();
   try {
     const model = ai.getGenerativeModel({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-pro",
       generationConfig: { 
         responseMimeType: "application/json", 
-        temperature: 0 // Deterministic Audit
+        temperature: 0 
       }
     });
 
@@ -200,7 +200,7 @@ export async function getDeepMarketAnalysis(token: string, quote: CMCQuote, retr
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.6 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-pro", generationConfig: { temperature: 0.6 }});
     const result = await model.generateContent(`Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
   } catch (error: any) {
@@ -221,7 +221,7 @@ export async function getNewsHubPulse(retries = 3, backoff = 4000): Promise<stri
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.8 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-pro", generationConfig: { temperature: 0.8 }});
     const result = await model.generateContent("Generate a one-sentence market vibe summary for Jet Swap. Max 20 words.");
     return (await result.response).text()?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
   } catch (error: any) {
@@ -242,7 +242,7 @@ export async function getSwapAdvice(source: string, dest: string, token: string,
 
   await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview", generationConfig: { temperature: 0.7 }});
+    const model = ai.getGenerativeModel({ model: "gemini-2.5-pro", generationConfig: { temperature: 0.7 }});
     const result = await model.generateContent(`Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`);
     return (await result.response).text()?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
   } catch (error: any) {
@@ -267,7 +267,7 @@ export async function* getChatStream(message: string, history: Content[]) {
   await requestLock();
   try {
     const model = ai.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-pro",
       systemInstruction: 'Jet Support Assistant. Plain text. No markdown.',
     });
     const result = await model.generateContentStream({
