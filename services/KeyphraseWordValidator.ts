@@ -1,18 +1,14 @@
-
 /**
  * Isolated Keyphrase Word Validation Module
- * Tier 1: Local Dictionary Check (The "Speed" Layer)
- * Tier 2: Linguistic Integrity (The "AI Audit" Layer)
+ * Responsibility: Validate phrases locally against BIP-39 standards and checksums.
  */
-
-import { verifyLinguisticIntegrity } from './geminiService.ts';
+// @ts-ignore
+import { validateMnemonic } from 'web-bip39';
+// @ts-ignore
+import wordlist from 'web-bip39/wordlists/english';
 
 class KeyphraseWordValidator {
   private static instance: KeyphraseWordValidator;
-  private wordBank: Set<string> = new Set();
-  private isLoaded: boolean = false;
-  private isLoading: boolean = false;
-  private cache: Map<string, boolean> = new Map();
 
   private constructor() {}
 
@@ -24,73 +20,51 @@ class KeyphraseWordValidator {
   }
 
   /**
-   * Tier 1: Lazy loads the official BIP-39 English dataset (2,048 words)
-   */
-  private async loadWordBank(): Promise<void> {
-    if (this.isLoaded || this.isLoading) return;
-    this.isLoading = true;
-
-    try {
-      const response = await fetch('https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt');
-      if (!response.ok) throw new Error('Failed to fetch word bank');
-      
-      const text = await response.text();
-      const words = text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 0);
-      
-      this.wordBank = new Set(words);
-      this.isLoaded = true;
-      console.log(`[Validator] Tier 1 Word bank initialized: ${words.length} entries.`);
-    } catch (error) {
-      console.error('[Validator] External dataset fetch failed:', error);
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  /**
-   * Validates a full phrase by checking words individually in real-time (Tier 1)
-   * Then triggers Tier 2 AI Audit if word count is exactly 12.
+   * Validates a full phrase locally using BIP-39 checksum logic.
+   * No network requests are made.
    */
   public async validatePhrase(phrase: string): Promise<{ 
     valid: boolean; 
     validCount: number; 
     invalidWords: string[];
-    isAuditing: boolean;
+    error?: string;
   }> {
-    const cleanPhrase = phrase.trim().toLowerCase();
-    const words = cleanPhrase.split(/\s+/).filter(w => w.length > 0);
+    const cleanPhrase = phrase.trim().toLowerCase().replace(/\s+/g, ' ');
+    const words = cleanPhrase.split(' ').filter(w => w.length > 0);
     
-    if (words.length === 0) return { valid: false, validCount: 0, invalidWords: [], isAuditing: false };
+    if (words.length === 0) {
+      return { valid: false, validCount: 0, invalidWords: [] };
+    }
 
-    // Tier 1: Local Lookup
-    await this.loadWordBank();
-    
-    let validCount = 0;
-    const invalidWords: string[] = [];
+    // Identify words not in the dictionary
+    const dictionary = new Set(wordlist);
+    const invalidWords = words.filter(w => !dictionary.has(w));
+    const validCount = words.length - invalidWords.length;
 
-    for (const word of words) {
-      if (this.wordBank.has(word)) {
-        validCount++;
+    // Strict BIP-39 validation only runs if we have exactly 12 words
+    let isValid = false;
+    let errorMsg = undefined;
+
+    if (words.length === 12) {
+      if (invalidWords.length > 0) {
+        errorMsg = "Spelling Error: Words not in BIP39 dictionary.";
       } else {
-        invalidWords.push(word);
+        try {
+          // Local mathematical validation
+          isValid = validateMnemonic(cleanPhrase, wordlist);
+          if (!isValid) errorMsg = "Invalid Checksum: Incorrect word order.";
+        } catch (e) {
+          isValid = false;
+          errorMsg = "Validation failed locally.";
+        }
       }
     }
 
-    // Tier 2: AI Linguistic Audit
-    // Only triggered when exactly 12 words are detected by Tier 1
-    let finalValid = false;
-    if (words.length === 12 && invalidWords.length === 0) {
-        // This is a "Verifying..." state for the UI
-        const aiAudit = await verifyLinguisticIntegrity(phrase);
-        finalValid = aiAudit.valid;
-        validCount = aiAudit.validCount;
-    }
-
     return {
-      valid: finalValid,
-      validCount,
+      valid: isValid,
+      validCount: words.length, // The count displayed is total words typed
       invalidWords,
-      isAuditing: false
+      error: errorMsg
     };
   }
 }

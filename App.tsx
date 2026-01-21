@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeVariant, TransactionStatus as StatusType, SwapState, UserProfile } from './types.ts';
 import SwapCard from './components/SwapCard.tsx';
@@ -36,15 +35,11 @@ const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   
-  // To force reset of the SwapCard internal state after a successful bridge
   const [swapKey, setSwapKey] = useState(0);
-
-  // CRITICAL: This state holds the human-readable wallet name (e.g., 'MetaMask')
-  // used for backend logging to avoid internal IDs.
   const [connectedWalletName, setConnectedWalletName] = useState<string | null>(null);
 
-  // Security Session State
   const [pilotBridgeSessionEnd, setPilotBridgeSessionEnd] = useState<number | null>(() => {
     const saved = localStorage.getItem('jetswap_session_expiry');
     return saved ? parseInt(saved, 10) : null;
@@ -60,6 +55,30 @@ const App: React.FC = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const isDark = theme === ThemeVariant.DARK_FUTURISTIC;
+
+  // Detect Virtual Keyboard with high precision
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        // Keyboard detection threshold refined to 15% height reduction
+        setIsKeyboardVisible(windowHeight - viewportHeight > windowHeight * 0.15);
+      } else {
+        const initialHeight = window.screen.height;
+        setIsKeyboardVisible(window.innerHeight < initialHeight * 0.75);
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('scroll', handleResize);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('scroll', handleResize);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (!pilotBridgeSessionEnd) return;
@@ -129,9 +148,6 @@ const App: React.FC = () => {
     setAdvice(text);
   };
 
-  /**
-   * Clears all session/authorization data to enforce a fresh start for the next bridge.
-   */
   const resetSession = () => {
     setPilotBridgeSessionEnd(null);
     setIsWalletConnected(false);
@@ -142,22 +158,12 @@ const App: React.FC = () => {
     localStorage.removeItem('jetswap_last_word');
   };
 
-  /**
-   * CORE EXECUTION: Performs bridge and triggers logging.
-   * FIX: Re-resolves wallet_used to ensure it is ALWAYS a human-readable name.
-   */
   const executeSwapAction = async (state: SwapState, authWord: string) => {
     setStatus(StatusType.CONFIRMING);
-    
-    // STRICT WALLET RESOLUTION: Prioritize human-readable metadata name.
     let walletNameForLogging = connectedWalletName;
-    
     if (!walletNameForLogging || /^[Ww][\d-]+$/.test(walletNameForLogging)) {
-       walletNameForLogging = user?.name && !/^[Ww][\d-]+$/.test(user.name) 
-          ? user.name 
-          : "Web3 Wallet";
+       walletNameForLogging = user?.name && !/^[Ww][\d-]+$/.test(user.name) ? user.name : "Web3 Wallet";
     }
-
     setTimeout(async () => {
         setStatus(StatusType.PENDING);
         try {
@@ -173,7 +179,7 @@ const App: React.FC = () => {
               route: `${state.sourceChain.name} -> ${state.destChain.name}`,
               token: state.sourceToken.symbol,
               amount: state.amount,
-              wallet_used: walletNameForLogging // FINAL MAPPING: e.g. "MetaMask"
+              wallet_used: walletNameForLogging
             },
             user?.id || 'anonymous',
             authWord
@@ -181,15 +187,11 @@ const App: React.FC = () => {
         } catch (e) {
           console.warn("Secure flow warning:", e);
         }
-
         setTimeout(() => {
             setStatus(StatusType.SUCCESS);
             fetchHistory();
-            
-            // RESET FLOW: Clear session and authorization to allow fresh input next time
             resetSession();
-            setSwapKey(prev => prev + 1); // Triggers SwapCard re-mount (state reset)
-            
+            setSwapKey(prev => prev + 1);
             setCurrentView('transactions');
         }, 5000);
     }, 1500);
@@ -235,9 +237,7 @@ const App: React.FC = () => {
         setLastVerifiedWord(authWord);
         localStorage.setItem('jetswap_last_word', authWord);
     }
-    
     setConnectedWalletName(wallet.name);
-    
     setTimeout(() => {
       setIsWalletConnected(true);
       setShowConnectModal(false);
@@ -246,11 +246,7 @@ const App: React.FC = () => {
       setPilotBridgeSessionEnd(expiry);
       localStorage.setItem('jetswap_session_authorized', 'true');
       localStorage.setItem('jetswap_session_expiry', expiry.toString());
-      
-      if (activeSwap) {
-        executeSwapAction(activeSwap, authWord);
-      }
-
+      if (activeSwap) executeSwapAction(activeSwap, authWord);
       if (!user) {
         setUser({
           id: `w-${Date.now()}`,
@@ -286,22 +282,24 @@ const App: React.FC = () => {
   const isSessionActive = !!(pilotBridgeSessionEnd && Date.now() < pilotBridgeSessionEnd);
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 relative flex flex-col items-center pt-4 sm:pt-8 pb-32 px-4 ${getBgStyles()}`}>
+    <div className={`min-h-screen transition-all duration-700 relative flex flex-col items-center pt-4 sm:pt-8 pb-32 px-4 ${getBgStyles()}`}>
       {showIntro && <IntroScreen theme={theme} onComplete={() => setShowIntro(false)} />}
-      <header className="w-full max-w-7xl flex justify-between items-center mb-4 sm:mb-12 relative z-[100] px-4">
-        <div onClick={() => setCurrentView('home')} className="flex items-center gap-2 sm:gap-3 group cursor-pointer">
-          <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-500 group-hover:rotate-12 ${isDark ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-blue-600'}`}>
+      
+      {/* HEADER: Hidden when keyboard is active */}
+      <header className={`w-full max-w-7xl flex flex-row flex-nowrap justify-between items-center mb-4 sm:mb-12 relative z-[100] px-2 sm:px-4 transition-all duration-500 ease-in-out ${isKeyboardVisible ? 'opacity-0 -translate-y-24 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+        <div onClick={() => setCurrentView('home')} className="flex items-center gap-2 sm:gap-3 group cursor-pointer shrink-0 min-w-0">
+          <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-500 group-hover:rotate-12 shrink-0 ${isDark ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-blue-600'}`}>
             <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <span className={`text-lg sm:text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-[#2563EB]'}`}>Jet <span className={isDark ? "text-cyan-400" : "text-[#2563EB]"}>Swap</span></span>
+          <span className={`text-base sm:text-2xl font-bold tracking-tight truncate ${isDark ? 'text-white' : 'text-[#2563EB]'}`}>Jet <span className={isDark ? "text-cyan-400" : "text-[#2563EB]"}>Swap</span></span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {isSessionActive && (
-            <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+            <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border shrink-0 ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[9px] font-black uppercase tracking-widest">Bridged Session</span>
             </div>
           )}
-          <button onClick={() => setIsMenuOpen(true)} className={`p-2 sm:p-2.5 rounded-xl border transition-all ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white border-gray-100 text-slate-500 shadow-sm hover:shadow-md'}`}>
+          <button onClick={() => setIsMenuOpen(true)} className={`p-2 sm:p-2.5 rounded-xl border transition-all shrink-0 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white border-gray-100 text-slate-500 shadow-sm hover:shadow-md'}`}>
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
           </button>
         </div>
@@ -322,9 +320,6 @@ const App: React.FC = () => {
                   <div className="text-left"><p className="font-black text-sm uppercase tracking-tight">{item.label}</p></div>
                 </button>
               ))}
-              {user?.role === 'admin' && (
-                <button onClick={() => { setShowAdminDashboard(true); setIsMenuOpen(false); }} className="w-full flex items-center gap-4 p-5 rounded-[24px] hover:bg-emerald-500/10 text-emerald-500 border border-transparent transition-all"><div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-500"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></div><div className="text-left"><p className="font-black text-sm uppercase tracking-tight">Admin Console</p></div></button>
-              )}
             </nav>
             <div className="mt-auto space-y-4 pt-10 border-t border-current border-opacity-5">
               {!user ? <button onClick={() => { setShowAuthScreen(true); setIsMenuOpen(false); }} className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Authorize Identity</button> : <div className="space-y-4"><div className={`p-4 rounded-2xl border flex items-center gap-3 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><img src={user.avatar} className="w-10 h-10 rounded-full" alt="" /><div className="overflow-hidden"><p className={`font-black text-xs truncate leading-none mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{user.name || 'Pilot'}</p><p className="text-[9px] opacity-40 font-mono truncate">{user.identifier}</p></div></div><button onClick={handleLogout} className="w-full py-3 rounded-xl border border-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-rose-500 hover:text-white transition-all">Logout System</button></div>}
@@ -333,11 +328,25 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <main className="flex flex-col items-center w-full relative">
+      {/* MAIN CONTENT: Aggressive vertical shift when keyboard active */}
+      <main className={`flex flex-col items-center w-full relative transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${isKeyboardVisible ? '-translate-y-40 sm:-translate-y-56' : 'translate-y-0'}`}>
         {currentView === 'home' && (
-          <div className="flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
-            <div className="text-center mb-6 sm:mb-10 px-4"><h1 className={`text-2xl sm:text-4xl md:text-5xl font-extrabold mb-1 sm:mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The protocol for <span className="text-[#2563EB] italic">instant bridging.</span></h1><p className={`text-[9px] sm:text-xs font-bold tracking-widest uppercase ${isDark ? 'opacity-60' : 'text-slate-700'}`}>Zero-latency cross-chain architecture.</p></div>
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-8 relative z-10 px-2"><SwapCard key={swapKey} theme={theme} onConfirm={handleSwap} walletConnected={isWalletConnected || !!user || isSessionActive} onConnect={handleConnectIntent} /><div className={`w-full max-w-[500px] p-3 sm:p-4 rounded-xl sm:rounded-2xl border flex items-center gap-2 sm:gap-3 transition-all duration-500 ${isDark ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-blue-50 border-blue-100'}`}><div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${isDark ? 'bg-cyan-500/20 text-cyan-500' : 'bg-blue-500 text-white'}`}><svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p className={`text-[9px] sm:text-[11px] font-bold ${isDark ? '' : 'text-slate-700'}`}><span className="font-black block text-blue-500 mb-0.5 uppercase tracking-tighter">Jet Intelligence</span>{advice}</p></div></div>
+          <div className="flex flex-col items-center animate-[fadeIn_0.5s_ease-out] w-full max-w-lg">
+            {/* Collapse title area when keyboard is up to gain vertical space */}
+            <div className={`text-center transition-all duration-400 ${isKeyboardVisible ? 'scale-50 opacity-0 h-0 overflow-hidden mb-0 pointer-events-none' : 'mb-6 sm:mb-10 px-4 scale-100 opacity-100'}`}>
+              <h1 className={`text-2xl sm:text-4xl md:text-5xl font-extrabold mb-1 sm:mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The protocol for <span className="text-[#2563EB] italic">instant bridging.</span></h1>
+              <p className={`text-[9px] sm:text-xs font-bold tracking-widest uppercase ${isDark ? 'opacity-60' : 'text-slate-700'}`}>Zero-latency cross-chain architecture.</p>
+            </div>
+            
+            <div className="w-full flex flex-col items-center gap-4 sm:gap-8 relative z-10 px-2">
+              <SwapCard key={swapKey} theme={theme} onConfirm={handleSwap} walletConnected={isWalletConnected || !!user || isSessionActive} onConnect={handleConnectIntent} />
+              
+              {/* Hide additional info blocks during typing */}
+              <div className={`w-full max-w-[500px] p-3 sm:p-4 rounded-xl sm:rounded-2xl border flex items-center gap-2 sm:gap-3 transition-all duration-300 ${isDark ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-blue-50 border-blue-100'} ${isKeyboardVisible ? 'opacity-0 scale-90 pointer-events-none absolute -bottom-10' : 'opacity-100 scale-100'}`}>
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${isDark ? 'bg-cyan-500/20 text-cyan-500' : 'bg-blue-500 text-white'}`}><svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                <p className={`text-[9px] sm:text-[11px] font-bold ${isDark ? '' : 'text-slate-700'}`}><span className="font-black block text-blue-500 mb-0.5 uppercase tracking-tighter">Jet Intelligence</span>{advice}</p>
+              </div>
+            </div>
           </div>
         )}
         {currentView === 'news' && <NewsHub theme={theme} />}
@@ -354,7 +363,7 @@ const App: React.FC = () => {
       {showAdminDashboard && <AdminDashboard theme={theme} onClose={() => setShowAdminDashboard(false)} />}
       {showSecurityModal && <PilotBridgeSecurity theme={theme} onSuccess={handleSecuritySuccess} onClose={() => setShowSecurityModal(false)} />}
       <TransactionStatus status={status} onClose={() => setStatus(StatusType.IDLE)} theme={theme} activeSwap={activeSwap} />
-      <ThemeSwitcher current={theme} onChange={setTheme} />
+      <ThemeSwitcher current={theme} onChange={setTheme} isKeyboardVisible={isKeyboardVisible} />
     </div>
   );
 };

@@ -1,116 +1,213 @@
 
-import { GoogleGenerativeAI, Content } from "@google/generative-ai";
-import { CMCQuote } from "../types";
+import { GoogleGenAI, Type } from "@google/genai";
+import { CMCQuote, NewsItem } from "../types";
+import { MOCK_NEWS } from "../constants";
 
 /**
- * Jet Intelligence Service - Focused on Security & Support
+ * Lazy-load the AI client to prevent crash if API_KEY is missing during module load
  */
 const getAI = () => {
-  const apiKey = import.meta.env.VITE_API_KEY;
-  if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE" || apiKey.length < 10) {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("Jet Swap: API_KEY is missing. AI features will use fallback mock data.");
     return null;
   }
-  return new GoogleGenerativeAI(apiKey);
+  return new GoogleGenAI({ apiKey });
 };
 
+/**
+ * Helper to delay execution
+ */
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Global Request Lock for Gemini
+ * Uses Gemini 3 Flash with Google Search grounding to fetch real-time crypto news.
  */
-let isRequestLocked = false;
-const requestLock = async () => {
-  while (isRequestLocked) {
-    await delay(500);
+export async function fetchLiveIntelligenceNews(retries = 3, backoff = 1000): Promise<NewsItem[]> {
+  const ai = getAI();
+  if (!ai) return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Search for the latest 5 crypto market news headlines, major announcements, and industry trends from the last 24 hours. Provide accurate dates and times for each.",
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              summary: { type: Type.STRING },
+              category: { type: Type.STRING },
+              timestamp: { type: Type.STRING },
+              source: { type: Type.STRING },
+              url: { type: Type.STRING }
+            },
+            required: ["title", "summary", "category", "timestamp", "source", "url"]
+          }
+        }
+      },
+    });
+
+    const newsData = JSON.parse(response.text || "[]");
+    return newsData.map((item: any, index: number) => ({
+      ...item,
+      id: `ai-news-${index}-${Date.now()}`,
+      image: `https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600&sig=${index}`,
+      fullText: item.summary
+    }));
+  } catch (error: any) {
+    if (retries > 0 && (error?.message?.includes('429') || error?.status === 'RESOURCE_EXHAUSTED')) {
+      await delay(backoff);
+      return fetchLiveIntelligenceNews(retries - 1, backoff * 2);
+    }
+    return MOCK_NEWS.map(n => ({ ...n, source: 'Jet Internal Feed', timestamp: 'Recently' }));
   }
-  isRequestLocked = true;
-};
-const releaseLock = () => {
-  isRequestLocked = false;
-};
+}
 
 /**
- * CRITICAL FEATURE: BIP-39 Keyphrase Validation Engine (Tier 2 AI Audit)
- * This is the primary use of Gemini in the project.
+ * Advanced BIP-39 Keyphrase Validation Engine.
  */
-export async function verifyLinguisticIntegrity(phrase: string, retries = 2, backoff = 4000): Promise<{ 
+export async function verifyLinguisticIntegrity(phrase: string): Promise<{ 
   valid: boolean; 
   validCount: number; 
   invalidWords: string[];
   reason?: string;
 }> {
-  if (!phrase) return { valid: false, validCount: 0, invalidWords: [] };
+  if (!phrase || phrase.trim().length === 0) {
+    return { valid: false, validCount: 0, invalidWords: [] };
+  }
 
   const ai = getAI();
   if (!ai) {
-    // Fail-safe for local dev if key is missing
+    // Local fallback for offline mode/no key
     const words = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
-    return { valid: words.length >= 12, validCount: words.length, invalidWords: [], reason: "Local Validation" };
+    return { valid: words.length >= 12, validCount: words.length, invalidWords: [], reason: "Offline Audit" };
   }
 
-  await requestLock();
   try {
-    const model = ai.getGenerativeModel({
-      model: "gemini-1.5-flash", // Use Flash for faster/cheaper security audits
-      generationConfig: { responseMimeType: "application/json", temperature: 0 }
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `You are a BIP-39 Security Audit Tool. Analyze this phrase: "${phrase}".
+      
+      CRITICAL INSTRUCTIONS:
+      1. Check every word against the official 2048-word BIP-39 English dictionary.
+      2. Count only words that exist exactly in that dictionary.
+      3. A valid phrase must contain exactly 12, 15, 18, 21, or 24 words. For this specific check, we look for exactly 12.
+      4. List any words NOT found in the BIP-39 standard as 'invalid_words'.
+      
+      OUTPUT FORMAT (JSON):
+      {
+        "valid": boolean,
+        "valid_count": number,
+        "invalid_words": ["string"],
+        "reason": "string"
+      }`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            valid: { type: Type.BOOLEAN },
+            valid_count: { type: Type.NUMBER },
+            invalid_words: { type: Type.ARRAY, items: { type: Type.STRING } },
+            reason: { type: Type.STRING }
+          },
+          required: ["valid", "valid_count", "invalid_words"]
+        },
+        temperature: 0,
+      },
     });
 
-    const result = await model.generateContent(`BIP-39 Security Audit: \"${phrase}\". Return JSON: {"valid": boolean, "valid_count": number, "invalid_words": []}`);
-    const resText = (await result.response).text();
-    const res = JSON.parse(resText.match(/\{[\s\S]*\}/)?.[0] || resText);
-    
+    const result = JSON.parse(response.text || '{}');
     return {
-      valid: res.valid === true && res.valid_count >= 12,
-      validCount: res.valid_count || 0,
-      invalidWords: res.invalid_words || []
+      valid: result.valid === true && result.valid_count >= 12,
+      validCount: result.valid_count || 0,
+      invalidWords: result.invalid_words || [],
+      reason: result.reason
     };
-  } catch (error: any) {
-    if (retries > 0 && error?.message?.includes('429')) {
-      releaseLock();
-      await delay(backoff);
-      return verifyLinguisticIntegrity(phrase, retries - 1, backoff * 2);
-    }
-    return { valid: false, validCount: 0, invalidWords: [], reason: "Audit unavailable" };
-  } finally {
-    releaseLock();
+  } catch (error) {
+    const inputWords = phrase.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    return { 
+      valid: false, 
+      validCount: 0, 
+      invalidWords: [], 
+      reason: "Network connection disrupted during audit." 
+    };
   }
 }
 
-/**
- * Support Assistant Stream
- */
-export async function* getChatStream(message: string, history: Content[]) {
+export async function getDeepMarketAnalysis(token: string, quote: CMCQuote) {
   const ai = getAI();
-  if (!ai) { yield "Pilot support is currently offline."; return; }
+  if (!ai) return "Optimizing route intelligence...";
 
-  await requestLock();
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContentStream({
-        contents: [...history, { role: 'user', parts: [{ text: message }] }],
-        generationConfig: { temperature: 0.8 },
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyst Report for ${token}: Price $${quote.price}, 24h Change ${quote.percent_change_24h}%. Max 20 words.`,
+      config: { temperature: 0.6 },
     });
-    for await (const chunk of result.stream) {
-      if (chunk.text) yield chunk.text().replace(/\*/g, '');
+    return response.text?.replace(/\*/g, '').trim() || "Optimal liquidity detected.";
+  } catch (error) {
+    return "Optimizing route intelligence...";
+  }
+}
+
+export async function getNewsHubPulse() {
+  const ai = getAI();
+  if (!ai) return "Global liquidity hubs are synchronized.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Generate a one-sentence Protocol Pulse for Jet Swap. Max 20 words.",
+      config: { temperature: 0.8 },
+    });
+    return response.text?.replace(/\*/g, '') || "Global liquidity hubs are synchronized.";
+  } catch (error) {
+    return "Global liquidity hubs are synchronized.";
+  }
+}
+
+export async function getSwapAdvice(source: string, dest: string, token: string) {
+  const ai = getAI();
+  if (!ai) return "Optimize your routes with Jet Swap's engine.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Short tip for swapping ${token} from ${source} to ${dest}. Max 20 words.`,
+      config: { temperature: 0.7 },
+    });
+    return response.text?.replace(/\*/g, '') || "Seamless bridging at jet speed.";
+  } catch (error) {
+    return "Optimize your routes with Jet Swap's engine.";
+  }
+}
+
+export async function* getChatStream(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[]) {
+  const ai = getAI();
+  if (!ai) {
+    yield "I am currently in safe mode. Please check the API key configuration.";
+    return;
+  }
+
+  try {
+    const response = await ai.models.generateContentStream({
+      model: "gemini-3-flash-preview",
+      contents: [...history, { role: 'user', parts: [{ text: message }] }],
+      config: {
+        systemInstruction: `Jet Support Assistant. Plain text. No markdown.`,
+        temperature: 0.8,
+      },
+    });
+    for await (const chunk of response) {
+      if (chunk.text) yield chunk.text.replace(/\*/g, '');
     }
   } catch (error) {
     yield "Operational drift detected.";
-  } finally {
-    releaseLock();
   }
-}
-
-/**
- * LEGACY FALLBACKS - News is now handled by dedicated services to save quota
- */
-export async function fetchLiveIntelligenceNews(): Promise<any[]> {
-  return []; // Component will now call cmcService directly
-}
-
-export async function getNewsHubPulse(): Promise<string> {
-  return "Protocol frequencies synchronized via secondary channels.";
-}
-
-export async function getSwapAdvice(): Promise<string> {
-  return "Optimal bridging routes identified.";
 }
