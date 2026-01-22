@@ -71,7 +71,7 @@ export const MOCK_NEWS: NewsItem[] = [
     summary: 'JetSwap announces the successful deployment of v2.5, featuring 40% lower gas fees on Arbitrum and Base.',
     fullText: 'The v2.5 upgrade introduces a new routing engine that optimizes gas usage across Layer 2 solutions.',
     category: 'Platform Updates',
-    timestamp: '2 hours ago',
+    timestamp: 'Jan 24, 2026 • 10:42 AM',
     image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000',
     important: true,
     trending: true
@@ -82,7 +82,7 @@ export const MOCK_NEWS: NewsItem[] = [
     summary: 'Strategic alliance aimed at scaling cross-chain liquidity between Ethereum and Solana ecosystem.',
     fullText: 'We are thrilled to partner with the Solana Foundation...',
     category: 'Announcements',
-    timestamp: '5 hours ago',
+    timestamp: 'Jan 24, 2026 • 09:15 AM',
     image: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?auto=format&fit=crop&q=80&w=1000',
     trending: true
   }

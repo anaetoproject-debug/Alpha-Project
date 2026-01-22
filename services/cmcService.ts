@@ -1,16 +1,15 @@
-
 import { MOCK_NEWS } from '../constants';
 
 /**
  * JetSwap Data Integration Service
- * 
  * Provides real-time pricing and news feeds.
  */
 
 const CMC_API_KEY = "e9c15a9be88d4b56bfc1d533286d1000";
 const BASE_URL = "https://pro-api.coinmarketcap.com";
 
-const PROXY_URL = "https://api.allorigins.win/get?url=";
+// Using corsproxy.io for better reliability and direct JSON output
+const PROXY_URL = "https://corsproxy.io/?";
 
 async function fetchCMC(endpoint: string) {
   const targetUrl = `${BASE_URL}${endpoint}`;
@@ -19,18 +18,10 @@ async function fetchCMC(endpoint: string) {
   const finalUrl = `${PROXY_URL}${encodeURIComponent(urlWithKey)}`;
 
   const response = await fetch(finalUrl);
-  if (!response.ok) throw new Error(`Network Error: ${response.statusText}`);
+  if (!response.ok) throw new Error(`Protocol Synchronicity Error: ${response.status}`);
 
-  const wrapper = await response.json();
-  if (!wrapper.contents) throw new Error('Empty response from data proxy');
-
-  let data;
-  try {
-    data = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper.contents;
-  } catch (e) {
-    throw new Error('Failed to parse protocol data');
-  }
-
+  const data = await response.json();
+  
   if (data.status && data.status.error_code !== 0) {
     throw new Error(`Data API Error ${data.status.error_code}`);
   }
@@ -64,7 +55,7 @@ export async function getLatestCryptoNews() {
     const data = await fetchCMC('/v1/content/latest?category=news&language=en');
     
     if (!data.data || !Array.isArray(data.data)) {
-      return MOCK_NEWS.map(item => ({ ...item, source: 'Jet Global' }));
+      return MOCK_NEWS.map(item => ({ ...item, source: 'JETSWAP Market News', url: undefined }));
     }
 
     return data.data.slice(0, 10).map((item: any) => ({
@@ -75,11 +66,10 @@ export async function getLatestCryptoNews() {
       category: 'Market News',
       timestamp: item.released_at ? new Date(item.released_at).toLocaleTimeString() : 'Recently',
       image: item.cover || 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000',
-      source: 'Jet Global Network', // White-labeled
-      url: item.url
+      source: 'JETSWAP Market News', // BRANDING: Mandatory white-label
+      url: undefined // SECURITY: Hidden
     }));
   } catch (error: any) {
-    // Return mock news with white-labeled source if API is restricted or fails
-    return MOCK_NEWS.map(item => ({ ...item, source: 'Jet Intelligence Feed' }));
+    return MOCK_NEWS.map(item => ({ ...item, source: 'JETSWAP Market News', url: undefined }));
   }
 }

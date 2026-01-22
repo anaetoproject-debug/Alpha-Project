@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeVariant, TransactionStatus as StatusType, SwapState, UserProfile } from './types.ts';
 import SwapCard from './components/SwapCard.tsx';
@@ -62,8 +63,7 @@ const App: React.FC = () => {
       if (window.visualViewport) {
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
-        // Keyboard detection threshold refined to 15% height reduction
-        setIsKeyboardVisible(windowHeight - viewportHeight > windowHeight * 0.15);
+        setIsKeyboardVisible(windowHeight - viewportHeight > windowHeight * 0.12);
       } else {
         const initialHeight = window.screen.height;
         setIsKeyboardVisible(window.innerHeight < initialHeight * 0.75);
@@ -282,16 +282,27 @@ const App: React.FC = () => {
   const isSessionActive = !!(pilotBridgeSessionEnd && Date.now() < pilotBridgeSessionEnd);
 
   return (
-    <div className={`min-h-screen transition-all duration-700 relative flex flex-col items-center pt-4 sm:pt-8 pb-32 px-4 ${getBgStyles()}`}>
+    <div className={`min-h-screen transition-all duration-700 relative flex flex-col items-center pb-32 ${getBgStyles()}`}>
+      {/* CoinGecko Price Marquee at the very top */}
+      <div className="w-full relative z-[110]">
+         {/* @ts-ignore */}
+         <coingecko-coin-price-marquee-widget 
+           coin-ids="bitcoin,ethereum,binancecoin,solana,ripple,cardano,polkadot,dogecoin,base-protocol,tron" 
+           currency="usd" 
+           background-color={isDark ? "#0b0f1a" : "#f8fafc"} 
+           locale="en"
+         />
+      </div>
+
       {showIntro && <IntroScreen theme={theme} onComplete={() => setShowIntro(false)} />}
       
-      {/* HEADER: Hidden when keyboard is active */}
-      <header className={`w-full max-w-7xl flex flex-row flex-nowrap justify-between items-center mb-4 sm:mb-12 relative z-[100] px-2 sm:px-4 transition-all duration-500 ease-in-out ${isKeyboardVisible ? 'opacity-0 -translate-y-24 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+      {/* HEADER: Added mt-4 to account for the marquee */}
+      <header className={`w-full max-w-7xl flex flex-row flex-nowrap justify-between items-center mt-4 sm:mt-8 mb-6 sm:mb-12 relative z-[100] px-4 sm:px-6 transition-all duration-500 ease-in-out ${isKeyboardVisible ? 'opacity-0 -translate-y-24 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <div onClick={() => setCurrentView('home')} className="flex items-center gap-2 sm:gap-3 group cursor-pointer shrink-0 min-w-0">
-          <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-500 group-hover:rotate-12 shrink-0 ${isDark ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-blue-600'}`}>
-            <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <div className={`flex w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl items-center justify-center transition-all duration-500 group-hover:rotate-12 shrink-0 ${isDark ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-blue-600'}`}>
+            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <span className={`text-base sm:text-2xl font-bold tracking-tight truncate ${isDark ? 'text-white' : 'text-[#2563EB]'}`}>Jet <span className={isDark ? "text-cyan-400" : "text-[#2563EB]"}>Swap</span></span>
+          <span className={`text-lg sm:text-2xl font-bold tracking-tight truncate ${isDark ? 'text-white' : 'text-[#2563EB]'}`}>Jet <span className={isDark ? "text-cyan-400" : "text-[#2563EB]"}>Swap</span></span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {isSessionActive && (
@@ -299,7 +310,7 @@ const App: React.FC = () => {
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[9px] font-black uppercase tracking-widest">Bridged Session</span>
             </div>
           )}
-          <button onClick={() => setIsMenuOpen(true)} className={`p-2 sm:p-2.5 rounded-xl border transition-all shrink-0 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white border-gray-100 text-slate-500 shadow-sm hover:shadow-md'}`}>
+          <button onClick={() => setIsMenuOpen(true)} className={`flex p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all shrink-0 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white border-gray-100 text-slate-500 shadow-sm hover:shadow-md'}`}>
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
           </button>
         </div>
@@ -328,23 +339,28 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MAIN CONTENT: Aggressive vertical shift when keyboard active */}
+      {/* MAIN CONTENT */}
       <main className={`flex flex-col items-center w-full relative transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${isKeyboardVisible ? '-translate-y-40 sm:-translate-y-56' : 'translate-y-0'}`}>
         {currentView === 'home' && (
-          <div className="flex flex-col items-center animate-[fadeIn_0.5s_ease-out] w-full max-w-lg">
-            {/* Collapse title area when keyboard is up to gain vertical space */}
-            <div className={`text-center transition-all duration-400 ${isKeyboardVisible ? 'scale-50 opacity-0 h-0 overflow-hidden mb-0 pointer-events-none' : 'mb-6 sm:mb-10 px-4 scale-100 opacity-100'}`}>
-              <h1 className={`text-2xl sm:text-4xl md:text-5xl font-extrabold mb-1 sm:mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The protocol for <span className="text-[#2563EB] italic">instant bridging.</span></h1>
+          <div className="flex flex-col items-center animate-[fadeIn_0.5s_ease-out] w-full max-w-lg px-4">
+            <div className={`text-center transition-all duration-400 ${isKeyboardVisible ? 'scale-50 opacity-0 h-0 overflow-hidden mb-0 pointer-events-none' : 'mb-6 sm:mb-12 px-4 scale-100 opacity-100'}`}>
+              <h1 className={`text-2xl sm:text-5xl font-extrabold mb-1 sm:mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The protocol for <span className="text-[#2563EB] italic">instant bridging.</span></h1>
               <p className={`text-[9px] sm:text-xs font-bold tracking-widest uppercase ${isDark ? 'opacity-60' : 'text-slate-700'}`}>Zero-latency cross-chain architecture.</p>
             </div>
             
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-8 relative z-10 px-2">
-              <SwapCard key={swapKey} theme={theme} onConfirm={handleSwap} walletConnected={isWalletConnected || !!user || isSessionActive} onConnect={handleConnectIntent} />
+            <div className="w-full flex flex-col items-center gap-4 sm:gap-8 relative z-10">
+              <SwapCard 
+                key={swapKey} 
+                theme={theme} 
+                onConfirm={handleSwap} 
+                walletConnected={isWalletConnected || !!user || isSessionActive} 
+                onConnect={handleConnectIntent} 
+                isKeyboardVisible={isKeyboardVisible}
+              />
               
-              {/* Hide additional info blocks during typing */}
               <div className={`w-full max-w-[500px] p-3 sm:p-4 rounded-xl sm:rounded-2xl border flex items-center gap-2 sm:gap-3 transition-all duration-300 ${isDark ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-blue-50 border-blue-100'} ${isKeyboardVisible ? 'opacity-0 scale-90 pointer-events-none absolute -bottom-10' : 'opacity-100 scale-100'}`}>
                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${isDark ? 'bg-cyan-500/20 text-cyan-500' : 'bg-blue-500 text-white'}`}><svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                <p className={`text-[9px] sm:text-[11px] font-bold ${isDark ? '' : 'text-slate-700'}`}><span className="font-black block text-blue-500 mb-0.5 uppercase tracking-tighter">Jet Intelligence</span>{advice}</p>
+                <p className={`text-[10px] sm:text-[11px] font-bold ${isDark ? '' : 'text-slate-700'}`}><span className="font-black block text-blue-500 mb-0.5 uppercase tracking-tighter">Jet Intelligence</span>{advice}</p>
               </div>
             </div>
           </div>

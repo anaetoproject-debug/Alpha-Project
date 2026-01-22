@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeVariant, SwapState, Chain, Token, PriceAlert, CMCQuote } from '../types';
 import { CHAINS, TOKENS } from '../constants';
@@ -12,9 +11,8 @@ interface SwapCardProps {
   onConfirm: (state: SwapState) => void;
   walletConnected: boolean;
   onConnect: (state: SwapState) => void;
+  isKeyboardVisible?: boolean;
 }
-
-type SwapIntent = 'swap' | 'bridge';
 
 const INITIAL_PRICES: Record<string, number> = {
   'ETH': 2642.15, 'BNB': 584.20, 'SOL': 142.50, 'TRX': 0.12, 'AVAX': 34.80,
@@ -22,8 +20,8 @@ const INITIAL_PRICES: Record<string, number> = {
   'OP': 1.65, 'USDC': 1.00, 'USDT': 1.00,
 };
 
-const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, onConnect }) => {
-  const [intent, setIntent] = useState<SwapIntent>('swap');
+const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, onConnect, isKeyboardVisible }) => {
+  const [intent, setIntent] = useState<'swap' | 'bridge'>('swap');
   const [liveQuotes, setLiveQuotes] = useState<Record<string, CMCQuote>>({});
   const [livePrices, setLivePrices] = useState<Record<string, number>>(INITIAL_PRICES);
   const [marketInsight, setMarketInsight] = useState("Synchronizing protocol depths...");
@@ -47,7 +45,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
 
   const isDark = theme === ThemeVariant.DARK_FUTURISTIC;
 
-  // Real-time Balance Logic (Fixed)
   const walletBalance = useMemo(() => {
     return walletConnected ? "12.42" : "0.00";
   }, [walletConnected]);
@@ -105,7 +102,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
     fetchInsight();
   }, [state.sourceToken, liveQuotes]);
 
-  // Recalculation logic for Source -> Dest (Triggered by state.amount change)
   useEffect(() => {
     if (parseFloat(state.amount) > 0) {
       const sourcePrice = livePrices[state.sourceToken.symbol] || 1;
@@ -126,7 +122,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
     return (amt * (livePrices[state.sourceToken.symbol] || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }, [state.amount, state.sourceToken, livePrices]);
 
-  // USD Display for Buy/Receive Section
   const destUsdValue = useMemo(() => {
     const amt = parseFloat(state.estimatedOutput);
     if (isNaN(amt)) return '0.00';
@@ -146,7 +141,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
     }));
   };
 
-  // Enable reverse calculation for Buy/Receive input
   const handleDestAmountChange = (val: string) => {
     setState(prev => ({ ...prev, estimatedOutput: val }));
     const amt = parseFloat(val);
@@ -187,10 +181,9 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
         </div>
       )}
 
-      <div className={`w-full max-w-[500px] p-4 sm:p-10 rounded-[32px] sm:rounded-[56px] border transition-all duration-500 relative ${getCardStyles()}`}>
+      <div className={`w-full max-w-[500px] p-4 sm:p-10 rounded-[32px] sm:rounded-[56px] border transition-all duration-500 relative ${getCardStyles()} ${isKeyboardVisible ? 'scale-95' : 'scale-100'}`}>
         
-        {/* Nav Tabs */}
-        <div className="flex justify-center gap-8 sm:gap-12 mb-4 sm:mb-10">
+        <div className={`flex justify-center gap-8 sm:gap-12 transition-all duration-300 ${isKeyboardVisible ? 'mb-2 h-0 opacity-0 overflow-hidden' : 'mb-4 sm:mb-10 opacity-100'}`}>
           <button onClick={() => setIntent('swap')} className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${intent === 'swap' ? 'text-[#2563EB]' : (isDark ? 'text-white/40' : 'text-slate-500')}`}>
             Swap
             {intent === 'swap' && <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-[#2563EB] rounded-full" />}
@@ -203,16 +196,15 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
 
         <div className="flex flex-col gap-2 sm:gap-3">
           
-          {/* SELL SECTION (FROM) */}
           <div className={`p-4 sm:p-8 rounded-[24px] sm:rounded-[44px] border transition-all ${isDark ? 'bg-[#151926] border-white/5' : 'bg-gray-50/40 border-gray-100/50'}`}>
-            <div className="flex justify-between items-center mb-3 sm:mb-6">
+            <div className={`flex justify-between items-center transition-all ${isKeyboardVisible ? 'mb-1' : 'mb-3 sm:mb-6'}`}>
                <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'opacity-30' : 'text-slate-600'}`}>Sell / From</span>
                <div className="flex items-center gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-black/5 dark:bg-white/5">
                   <span className={`text-[8px] sm:text-[9px] font-bold ${isDark ? 'opacity-30' : 'text-slate-500'}`}>BAL: {walletBalance}</span>
                </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
+            <div className={`flex items-center justify-between gap-3 sm:gap-4 transition-all ${isKeyboardVisible ? 'mb-2' : 'mb-4 sm:mb-8'}`}>
               <div className="flex items-center gap-2 sm:gap-4">
                  <div className="scale-100 sm:scale-110">
                     <ChainSelector label="" selected={state.sourceChain} onSelect={(c) => setState({...state, sourceChain: c})} theme={theme} isMinimal />
@@ -234,7 +226,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
             </div>
           </div>
 
-          {/* TRANSIT SEPARATOR */}
           <div className="flex justify-center -my-5 sm:-my-7 relative z-10">
             <button onClick={handleSwapDirection} className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl border transition-all hover:rotate-180 active:scale-95 shadow-lg sm:shadow-2xl ${isDark ? 'bg-[#0B0F1A] border-white/10 text-cyan-400' : 'bg-white border-gray-100 text-blue-600'}`}>
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,13 +234,12 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
             </button>
           </div>
 
-          {/* BUY SECTION (TO) - ENABLED INPUT AND USD DISPLAY */}
           <div className={`p-4 sm:p-8 rounded-[24px] sm:rounded-[44px] border transition-all ${isDark ? 'bg-[#151926] border-white/5' : 'bg-gray-50/40 border-gray-100/50'}`}>
-            <div className="flex justify-between items-center mb-3 sm:mb-6">
+            <div className={`flex justify-between items-center transition-all ${isKeyboardVisible ? 'mb-1' : 'mb-3 sm:mb-6'}`}>
                <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'opacity-30' : 'text-slate-600'}`}>Buy / Receive</span>
             </div>
 
-            <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
+            <div className={`flex items-center justify-between gap-3 sm:gap-4 transition-all ${isKeyboardVisible ? 'mb-2' : 'mb-4 sm:mb-8'}`}>
                <div className="flex items-center gap-2 sm:gap-4">
                   <div className="scale-100 sm:scale-110">
                     <ChainSelector label="" selected={state.destChain} onSelect={(c) => setState({...state, destChain: c})} theme={theme} isMinimal />
@@ -277,55 +267,23 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, onConfirm, walletConnected, 
             </div>
           </div>
 
-          {/* ACTION SECTION */}
           <div className="mt-2 sm:mt-6 flex flex-col gap-4 sm:gap-6">
             <button onClick={() => walletConnected ? onConfirm(state) : onConnect(state)} className={`w-full py-5 sm:py-8 rounded-2xl sm:rounded-[36px] font-black text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 transform active:scale-95 shadow-xl sm:shadow-2xl ${walletConnected ? 'bg-[#2563EB] text-white shadow-blue-500/30' : 'bg-gray-100 border border-gray-200 text-[#2563EB] hover:bg-white'}`}>
               {!walletConnected ? 'AUTHORIZE BRIDGE CONNECTION' : (intent === 'swap' ? 'Launch Swap' : 'Link Wallets')}
             </button>
-
-            {/* REAL-TIME PRICE DISPLAY */}
-            <div className="flex flex-col gap-3 sm:gap-5 px-4 sm:px-6 py-2 sm:py-4 rounded-xl sm:rounded-[32px] bg-black/5 dark:bg-white/5 border border-current border-opacity-5">
-              <div className="flex justify-between items-center gap-2">
-                 <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isUpdating ? 'bg-amber-500 animate-spin' : (lastUpdateSucceeded ? 'bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.6)]' : 'bg-rose-500')}`} />
-                    <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-white/40' : 'text-slate-700'}`}>Sync</span>
-                 </div>
-                 <div className="flex items-center gap-2 sm:gap-4 truncate">
-                    <span className={`text-[8px] sm:text-[10px] font-black tracking-widest ${isDark ? 'text-white' : 'text-slate-900'} truncate`}>1 {state.sourceToken.symbol} = ${currentTokenPrice}</span>
-                    {liveQuotes[state.sourceToken.symbol] && (
-                      <span className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded-md ${liveQuotes[state.sourceToken.symbol].percent_change_24h >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                        {liveQuotes[state.sourceToken.symbol].percent_change_24h >= 0 ? '↑' : '↓'} {Math.abs(liveQuotes[state.sourceToken.symbol].percent_change_24h).toFixed(1)}%
-                      </span>
-                    )}
-                 </div>
-              </div>
-
-              <div className="hidden sm:flex justify-between items-center pt-5 border-t border-current border-opacity-5">
-                 <button onClick={() => setShowAlertModal(!showAlertModal)} className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${currentAlert ? 'text-blue-500 animate-bounce' : (isDark ? 'opacity-30 text-white' : 'text-slate-600 opacity-60')}`}>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                    {currentAlert ? `Monitor @ $${currentAlert.targetPrice}` : 'Market Watch'}
-                 </button>
-                 <div className="flex items-center gap-2">
-                    <span className={`text-[8px] font-bold uppercase tracking-[0.4em] ${isDark ? 'opacity-20' : 'text-slate-400'}`}>Terminal Active</span>
-                 </div>
-              </div>
-
-              {showAlertModal && (
-                <div className={`p-6 rounded-[32px] border mt-2 animate-[fadeIn_0.2s_ease-out] ${isDark ? 'bg-blue-600/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-                  <div className="flex items-center justify-between mb-4"><h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500">Threshold Monitor</h4><button onClick={() => setShowAlertModal(false)}><svg className="w-4 h-4 opacity-40 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" strokeWidth={3}/></svg></button></div>
-                  <div className="flex gap-3">
-                    <input type="number" placeholder="Target USD" className={`flex-1 bg-black/5 dark:bg-white/5 border border-current border-opacity-10 rounded-2xl px-6 py-4 text-xs font-bold outline-none ${isDark ? 'text-white' : 'text-slate-900'}`} value={targetPrice} onChange={(e) => setTargetPrice(e.target.value)} />
-                    <button onClick={setPriceAlert} className="px-8 py-4 bg-[#2563EB] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">Enable</button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
           
         </div>
       </div>
 
-      <TokenSelector isOpen={activeSelector !== null} onClose={() => setActiveSelector(null)} selected={activeSelector === 'source' ? state.sourceToken : state.destToken} onSelect={(token) => activeSelector === 'source' ? setState({...state, sourceToken: token}) : setState({...state, destToken: token})} theme={theme} />
+      <TokenSelector 
+        isOpen={activeSelector !== null} 
+        onClose={() => setActiveSelector(null)} 
+        selected={activeSelector === 'source' ? state.sourceToken : state.destToken} 
+        onSelect={(token) => activeSelector === 'source' ? setState({...state, sourceToken: token}) : setState({...state, destToken: token})} 
+        theme={theme} 
+        isKeyboardVisible={isKeyboardVisible}
+      />
     </>
   );
 };

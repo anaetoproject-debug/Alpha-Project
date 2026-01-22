@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ThemeVariant } from '../types';
 import { validator } from '../services/KeyphraseWordValidator.ts';
@@ -22,14 +23,10 @@ const PilotBridgeSecurity: React.FC<PilotBridgeSecurityProps> = ({ theme, onSucc
       const count = words.length;
       setWordCount(count);
 
-      if (count === 12) {
-        const result = await validator.validatePhrase(userInput);
-        setIsValid(result.valid);
-        setErrorMessage(result.error || null);
-      } else {
-        setIsValid(false);
-        setErrorMessage(null);
-      }
+      // Perform validation on every keystroke to catch spelling errors immediately
+      const result = await validator.validatePhrase(userInput);
+      setIsValid(result.valid);
+      setErrorMessage(result.error || null);
     };
 
     runValidation();

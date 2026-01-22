@@ -1,3 +1,4 @@
+
 /**
  * Isolated Keyphrase Word Validation Module
  * Responsibility: Validate phrases locally against BIP-39 standards and checksums.
@@ -21,6 +22,7 @@ class KeyphraseWordValidator {
 
   /**
    * Validates a full phrase locally using BIP-39 checksum logic.
+   * Performs real-time dictionary checks for spelling.
    * No network requests are made.
    */
   public async validatePhrase(phrase: string): Promise<{ 
@@ -36,33 +38,36 @@ class KeyphraseWordValidator {
       return { valid: false, validCount: 0, invalidWords: [] };
     }
 
-    // Identify words not in the dictionary
+    // Identify words not in the dictionary (Real-time spelling check)
     const dictionary = new Set(wordlist);
     const invalidWords = words.filter(w => !dictionary.has(w));
-    const validCount = words.length - invalidWords.length;
-
-    // Strict BIP-39 validation only runs if we have exactly 12 words
+    
     let isValid = false;
     let errorMsg = undefined;
 
-    if (words.length === 12) {
-      if (invalidWords.length > 0) {
-        errorMsg = "Spelling Error: Words not in BIP39 dictionary.";
-      } else {
-        try {
-          // Local mathematical validation
-          isValid = validateMnemonic(cleanPhrase, wordlist);
-          if (!isValid) errorMsg = "Invalid Checksum: Incorrect word order.";
-        } catch (e) {
-          isValid = false;
-          errorMsg = "Validation failed locally.";
-        }
+    // 1. Prioritize Spelling Errors (Word by Word)
+    if (invalidWords.length > 1) {
+      errorMsg = `Multiple spelling errors detected.`;
+    } else if (invalidWords.length === 1) {
+      errorMsg = `Spelling Error: "${invalidWords[0]}" is not in dictionary.`;
+    } 
+    // 2. Perform Checksum Validation (Only at exactly 12 words)
+    else if (words.length === 12) {
+      try {
+        // Local mathematical validation
+        isValid = validateMnemonic(cleanPhrase, wordlist);
+        if (!isValid) errorMsg = "Invalid Checksum: Incorrect word order.";
+      } catch (e) {
+        isValid = false;
+        errorMsg = "Validation failed locally.";
       }
+    } else if (words.length > 12) {
+      errorMsg = `Limit Exceeded: Only 12 words required.`;
     }
 
     return {
       valid: isValid,
-      validCount: words.length, // The count displayed is total words typed
+      validCount: words.length,
       invalidWords,
       error: errorMsg
     };
