@@ -96,7 +96,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({ theme, onSelect, onClos
             <button onClick={onClose} className={`p-2 sm:p-3 rounded-2xl transition-all border ${
               isDark ? 'bg-white/5 hover:bg-white/10 border-white/5' : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
             }`}>
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 opacity-40 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-5 h-5 sm:w-6 h-6 opacity-40 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
 
@@ -123,37 +123,37 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({ theme, onSelect, onClos
             {Object.entries(groupedWallets).map(([groupName, wallets]) => (
               wallets.length > 0 && (
                 <div key={groupName} className="space-y-3 sm:space-y-4">
-                  <h3 className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.4em] opacity-20 px-1 border-l-2 border-current ml-1 pl-2">{groupName}</h3>
+                  <h3 className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.4em] opacity-20 px-1 border-l-2 border-current ml-1 pl-2">{groupName}</h3>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     {wallets.map(wallet => (
                       <button
                         key={wallet.id}
                         disabled={!!connecting}
                         onClick={() => handleWalletClick(wallet)}
-                        className={`group p-2.5 sm:p-5 rounded-[20px] sm:rounded-[32px] border text-left transition-all relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-5 ${
+                        className={`group p-4 sm:p-8 rounded-[24px] sm:rounded-[36px] border text-center transition-all relative overflow-hidden flex flex-col items-center justify-center gap-3 sm:gap-5 ${
                           connecting === wallet.id 
                           ? 'border-emerald-500/50 bg-emerald-500/10' 
                           : isDark ? 'bg-white/5 border-white/5 hover:bg-white/[0.08]' : 'bg-white border-gray-100 hover:border-gray-300'
                         }`}
                       >
                         {wallet.recommended && (
-                          <div className="absolute top-1.5 right-1.5 sm:top-4 sm:right-4 flex items-center gap-1 px-1 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                          <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                             <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[5px] sm:text-[7px] font-black uppercase tracking-widest text-emerald-500">Fast</span>
+                            <span className="text-[6px] sm:text-[8px] font-black uppercase tracking-widest text-emerald-500">Fast</span>
                           </div>
                         )}
 
-                        <div className="relative shrink-0 p-1 bg-white rounded-[14px] sm:rounded-[20px] shadow-sm">
+                        <div className="relative shrink-0 p-1.5 sm:p-3 bg-white rounded-[16px] sm:rounded-[24px] shadow-sm group-hover:scale-105 transition-transform">
                           <img 
                             src={wallet.icon} 
                             alt={wallet.name} 
-                            className="w-8 h-8 sm:w-14 sm:h-14 object-contain rounded-lg" 
+                            className="w-10 h-10 sm:w-16 sm:h-16 object-contain rounded-lg" 
                           />
                         </div>
                         
-                        <div className="flex flex-col min-w-0 text-center sm:text-left w-full">
-                          <span className={`text-xs sm:text-sm font-black truncate uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{wallet.name}</span>
-                          <span className={`text-[8px] sm:text-[10px] font-bold opacity-40 uppercase tracking-widest truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{wallet.description}</span>
+                        <div className="flex flex-col min-w-0 text-center w-full">
+                          <span className={`text-[10px] sm:text-base font-black truncate uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{wallet.name}</span>
+                          <span className={`text-[7px] sm:text-[10px] font-black opacity-30 uppercase tracking-[0.1em] truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{wallet.description}</span>
                         </div>
 
                         {connecting === wallet.id && (
