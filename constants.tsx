@@ -37,59 +37,78 @@ export interface WalletProvider {
   name: string;
   icon: string;
   description: string;
-  category: 'Popular' | 'Multi-Chain' | 'Solana' | 'Smart' | 'Hardware' | 'Exchange';
+  category: 'POPULAR' | 'MULTI-CHAIN' | 'SOLANA' | 'SMART CHAIN' | 'HARDWARE' | 'EXCHANGE';
   recommended?: boolean;
 }
 
 export const WALLETS: WalletProvider[] = [
-  { id: 'metamask', name: 'MetaMask', icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Logo.svg', description: 'Injected Connector', category: 'Popular', recommended: true },
-  { id: 'okx', name: 'OKX Wallet', icon: 'https://assets.coingecko.com/markets/images/221/large/okx.png', description: 'Injected Connector', category: 'Exchange' },
-  { id: 'coinbase', name: 'Coinbase', icon: 'https://assets.coingecko.com/coins/images/18060/large/coinbase-wallet.png', description: 'Custom Connector', category: 'Popular', recommended: true },
-  { id: 'phantom', name: 'Phantom', icon: 'https://assets.coingecko.com/coins/images/24645/large/phantom.png', description: 'Injected Connector', category: 'Solana', recommended: true },
-  { id: 'zerion', name: 'Zerion', icon: 'https://assets.coingecko.com/coins/images/25605/large/zerion.png', description: 'Injected Connector', category: 'Multi-Chain' },
-  { id: 'rainbow', name: 'Rainbow', icon: 'https://assets.coingecko.com/coins/images/25442/large/rainbow.png', description: 'WalletConnect', category: 'Multi-Chain' },
-  { id: 'bybit', name: 'Bybit Wallet', icon: 'https://assets.coingecko.com/markets/images/698/large/bybit.png', description: 'Injected Connector', category: 'Exchange' },
-  { id: 'bitget', name: 'Bitget Wallet', icon: 'https://assets.coingecko.com/markets/images/1000/large/bitget.png', description: 'Injected Connector', category: 'Exchange' },
-  { id: 'trezor', name: 'Trezor', icon: 'https://assets.coingecko.com/coins/images/22033/large/trezor.png', description: 'Hardware Connector', category: 'Hardware' },
-  { id: 'ledger', name: 'Ledger Live', icon: 'https://assets.coingecko.com/coins/images/18260/large/ledger.png', description: 'Hardware Connector', category: 'Hardware' },
-  { id: 'agent', name: 'Agent', icon: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3B5yew995DqGupYp7u5R951XpE62X6G17TjAnz7YyK6U/logo.png', description: 'Custom Connector', category: 'Smart' },
-  { id: 'glow', name: 'Glow', icon: 'https://assets.coingecko.com/coins/images/25667/large/glow.png', description: 'Injected Connector', category: 'Solana' },
-  { id: 'backpack', name: 'Backpack', icon: 'https://assets.coingecko.com/coins/images/30391/large/backpack.png', description: 'Injected Connector', category: 'Solana' },
-  { id: 'best-wallet', name: 'Best Wallet', icon: 'https://assets.coingecko.com/coins/images/32517/large/best_wallet.png', description: 'WalletConnect', category: 'Popular' },
-  { id: '1inch', name: '1inch Wallet', icon: 'https://assets.coingecko.com/coins/images/14468/large/1inch.png', description: 'Injected Connector', category: 'Multi-Chain' },
-  { id: 'cryptocom', name: 'Crypto.com Wallet', icon: 'https://assets.coingecko.com/coins/images/7310/large/cro.png', description: 'Custom Connector', category: 'Exchange' },
-  { id: 'safepal', name: 'Safepal', icon: 'https://assets.coingecko.com/coins/images/13768/large/safepal.png', description: 'Injected Connector', category: 'Multi-Chain' },
-  { id: 'tangem', name: 'Tangem', icon: 'https://assets.coingecko.com/coins/images/22033/large/tangem.png', description: 'Hardware Connector', category: 'Hardware' },
-  { id: 'hot-wallet', name: 'Hot Wallet', icon: 'https://assets.coingecko.com/coins/images/35222/large/hot.png', description: 'Injected Connector', category: 'Smart' },
-  { id: 'keplr', name: 'Keplr Wallet', icon: 'https://assets.coingecko.com/markets/images/1025/large/keplr.png', description: 'Injected Connector', category: 'Multi-Chain' },
-  { id: 'coin98', name: 'Coin98 Wallet', icon: 'https://assets.coingecko.com/coins/images/17153/large/coin98.png', description: 'Injected Connector', category: 'Multi-Chain' },
-  { id: 'tomi', name: 'Tomi Wallet', icon: 'https://assets.coingecko.com/coins/images/28734/large/tomi.png', description: 'Injected Connector', category: 'Smart' },
-  { id: 'atomic', name: 'Atomic Wallet', icon: 'https://assets.coingecko.com/coins/images/3414/large/atomic_wallet.png', description: 'Custom Connector', category: 'Multi-Chain' },
-  { id: 'gem-wallet', name: 'Gem Wallet', icon: 'https://assets.coingecko.com/coins/images/33076/large/gem_wallet.png', description: 'Injected Connector', category: 'Smart' },
-  { id: 'kucoin-web3', name: 'Kucoin Web3 Wallet', icon: 'https://assets.coingecko.com/markets/images/61/large/kucoin.png', description: 'Injected Connector', category: 'Exchange' },
-  { id: 'bybit-web3', name: 'Bybit Web3 Wallet', icon: 'https://assets.coingecko.com/markets/images/698/large/bybit.png', description: 'Injected Connector', category: 'Exchange' },
+  // POPULAR
+  { id: 'metamask', name: 'MetaMask', icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg', description: 'INJECTED CONNECTOR', category: 'POPULAR', recommended: true },
+  { id: 'coinbase', name: 'Coinbase Wallet', icon: 'https://images.ctfassets.net/q5ulk4u677os/479N7p94mX76uYmKySnu9m/809c95d336a53c076579294e094770e5/coinbase-wallet-logo.png', description: 'CUSTOM CONNECTOR', category: 'POPULAR', recommended: true },
+  { id: 'best-wallet', name: 'Best Wallet', icon: 'https://avatars.githubusercontent.com/u/108554348?v=4', description: 'MULTI-CHAIN JET ENGINE', category: 'POPULAR', recommended: true },
+  { id: 'trust', name: 'Trust Wallet', icon: 'https://cryptologos.cc/logos/trust-wallet-twt-logo.png', description: 'POPULAR CONNECTOR', category: 'POPULAR' },
+  { id: 'phantom', name: 'Phantom', icon: 'https://cryptologos.cc/logos/phantom-phantom-logo.png', description: 'SOLANA ECOSYSTEM', category: 'POPULAR' },
+  { id: 'okx', name: 'OKX Wallet', icon: 'https://cryptologos.cc/logos/okx-okb-logo.png', description: 'WEB3 WALLET', category: 'POPULAR' },
+  { id: 'binance', name: 'Binance Web3 Wallet', icon: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png', description: 'EXCHANGE CONNECT', category: 'POPULAR' },
+
+  // MULTI-CHAIN
+  { id: 'zerion', name: 'Zerion', icon: 'https://avatars.githubusercontent.com/u/29591456?s=200&v=4', description: 'DEFI CONNECTOR', category: 'MULTI-CHAIN' },
+  { id: 'exodus', name: 'Exodus', icon: 'https://cryptologos.cc/logos/exodus-exodus-logo.png', description: 'MULTI-ASSET', category: 'MULTI-CHAIN' },
+  { id: 'rabby', name: 'Rabby Wallet', icon: 'https://avatars.githubusercontent.com/u/84683050?s=200&v=4', description: 'EVM EXPERT', category: 'MULTI-CHAIN' },
+  { id: 'argent', name: 'Argent', icon: 'https://cryptologos.cc/logos/argent-argent-logo.png', description: 'L2 SPECIALIST', category: 'MULTI-CHAIN' },
+  { id: 'zengo', name: 'Zengo', icon: 'https://avatars.githubusercontent.com/u/38146747?s=200&v=4', description: 'KEYLESS SECURITY', category: 'MULTI-CHAIN' },
+  { id: 'atomic', name: 'Atomic Wallet', icon: 'https://cryptologos.cc/logos/atomic-wallet-coin-awc-logo.png', description: 'MULTI-CHAIN HUB', category: 'MULTI-CHAIN' },
+  { id: 'gem', name: 'Gem Wallet', icon: 'https://avatars.githubusercontent.com/u/74300405?s=200&v=4', description: 'WEB3 BROWSER', category: 'MULTI-CHAIN' },
+  { id: 'rainbow', name: 'Rainbow Wallet', icon: 'https://avatars.githubusercontent.com/u/48327834?s=200&v=4', description: 'NFT CONNECTOR', category: 'MULTI-CHAIN' },
+  { id: 'oneinch', name: '1inch Wallet', icon: 'https://cryptologos.cc/logos/1inch-1inch-logo.png', description: 'AGGREGATOR HUB', category: 'MULTI-CHAIN' },
+  { id: 'hot', name: 'Hot Wallet', icon: 'https://avatars.githubusercontent.com/u/104381005?s=200&v=4', description: 'NEAR ECOSYSTEM', category: 'MULTI-CHAIN' },
+  { id: 'keplr', name: 'Keplr Wallet', icon: 'https://avatars.githubusercontent.com/u/53235659?s=200&v=4', description: 'COSMOS HUB', category: 'MULTI-CHAIN' },
+  { id: 'tomi', name: 'Tomi Wallet', icon: 'https://avatars.githubusercontent.com/u/109000100?s=200&v=4', description: 'PRIVACY HUB', category: 'MULTI-CHAIN' },
+  { id: 'bitkeep', name: 'BitKeep', icon: 'https://avatars.githubusercontent.com/u/41555355?s=200&v=4', description: 'ASSET MANAGEMENT', category: 'MULTI-CHAIN' },
+  { id: 'imtoken', name: 'imToken', icon: 'https://avatars.githubusercontent.com/u/18520894?s=200&v=4', description: 'ETHEREUM WALLET', category: 'MULTI-CHAIN' },
+  { id: 'math', name: 'Math Wallet', icon: 'https://avatars.githubusercontent.com/u/32777322?s=200&v=4', description: 'MULTI-PLATFORM', category: 'MULTI-CHAIN' },
+
+  // SOLANA
+  { id: 'solflare', name: 'Solflare', icon: 'https://avatars.githubusercontent.com/u/81728514?s=200&v=4', description: 'SOLANA EXPERT', category: 'SOLANA' },
+
+  // SMART CHAIN
+  { id: 'coin98', name: 'Coin98 Wallet', icon: 'https://cryptologos.cc/logos/coin98-c98-logo.png', description: 'MULTI-CHAIN HUB', category: 'SMART CHAIN' },
+  { id: 'kucoin', name: 'KuCoin Web3 Wallet', icon: 'https://cryptologos.cc/logos/kucoin-token-kcs-logo.png', description: 'ECOSYSTEM WALLET', category: 'SMART CHAIN' },
+  { id: 'bybit', name: 'Bybit Web3 Wallet', icon: 'https://avatars.githubusercontent.com/u/43795150?s=200&v=4', description: 'EXCHANGE WALLET', category: 'SMART CHAIN' },
+
+  // HARDWARE
+  { id: 'tangem', name: 'Tangem', icon: 'https://avatars.githubusercontent.com/u/43644917?s=200&v=4', description: 'CARD WALLET', category: 'HARDWARE' },
+  { id: 'safepal', name: 'SafePal', icon: 'https://cryptologos.cc/logos/safepal-sfp-logo.png', description: 'HARDWARE HUB', category: 'HARDWARE' },
+  { id: 'ledger', name: 'Ledger Live', icon: 'https://avatars.githubusercontent.com/u/11053076?s=200&v=4', description: 'COLD STORAGE', category: 'HARDWARE' },
+  { id: 'trezor', name: 'Trezor Wallet', icon: 'https://avatars.githubusercontent.com/u/3820980?s=200&v=4', description: 'LEGACY HARDWARE', category: 'HARDWARE' },
+
+  // EXCHANGE
+  { id: 'crypto-com', name: 'Crypto.com Wallet', icon: 'https://cryptologos.cc/logos/crypto-com-coin-cro-logo.png', description: 'DEFI WALLET', category: 'EXCHANGE' },
+  { id: 'kraken', name: 'Kraken Wallet', icon: 'https://cryptologos.cc/logos/kraken-kraken-logo.png', description: 'EXCHANGE APP', category: 'EXCHANGE' },
+  { id: 'uphold', name: 'Uphold', icon: 'https://avatars.githubusercontent.com/u/6462615?s=200&v=4', description: 'MULTI-ASSET', category: 'EXCHANGE' },
 ];
 
 export const MOCK_NEWS: NewsItem[] = [
   {
-    id: 'n1',
-    title: 'JetSwap v2.5 Protocol Upgrade Live on Mainnet',
-    summary: 'JetSwap announces the successful deployment of v2.5, featuring 40% lower gas fees on Arbitrum and Base.',
-    fullText: 'The v2.5 upgrade introduces a new routing engine that optimizes gas usage across Layer 2 solutions.',
+    id: 'mock-news-1',
+    title: 'Jet Swap V2.5 Synchronization Complete',
+    summary: 'The cross-chain intelligence network has achieved sub-second latency across 12 major protocols.',
+    fullText: 'Jet Swap v2.5 introduces neural-assisted routing and zero-knowledge liquidity audits for all active flight paths.',
     category: 'Platform Updates',
-    timestamp: 'Jan 24, 2026 • 10:42 AM',
-    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000',
-    important: true,
-    trending: true
+    timestamp: 'Jan 2026',
+    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600',
+    trending: true,
+    important: true
   },
   {
-    id: 'n2',
-    title: 'New Partnership: JetSwap x Solana Foundation',
-    summary: 'Strategic alliance aimed at scaling cross-chain liquidity between Ethereum and Solana ecosystem.',
-    fullText: 'We are thrilled to partner with the Solana Foundation...',
-    category: 'Announcements',
-    timestamp: 'Jan 24, 2026 • 09:15 AM',
-    image: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?auto=format&fit=crop&q=80&w=1000',
-    trending: true
+    id: 'mock-news-2',
+    title: 'Arbitrum Network Liquidity Surge',
+    summary: 'Institutional adoption on Arbitrum reaches record highs as bridging costs decrease.',
+    fullText: 'Market data indicates a 15% increase in total value locked (TVL) on L2 scaling solutions.',
+    category: 'Market News',
+    timestamp: 'Jan 2026',
+    image: 'https://images.unsplash.com/photo-1621761191319-c6fb62004009?auto=format&fit=crop&q=80&w=600',
+    trending: false,
+    important: false
   }
 ];

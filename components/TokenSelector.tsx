@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Token, ThemeVariant } from '../types';
@@ -141,8 +140,8 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
         </div>
 
         <div className={`p-4 sm:p-6 border-t shrink-0 ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-          <p className="text-[9px] font-bold opacity-30 text-center uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
-            Primary liquidity anchor protocol active.
+          <p className="text-[7px] font-bold opacity-30 text-center uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
+            connect pilot to import 1000+ tokens
           </p>
         </div>
       </div>
