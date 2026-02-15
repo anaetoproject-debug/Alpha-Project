@@ -146,9 +146,6 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-all duration-700 relative flex flex-col items-center pb-8 bg-[#0B0F1A] overflow-x-hidden`}>
-      {/* BACKGROUND GLOW EFFECT */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00D1FF]/10 blur-[120px] rounded-full pointer-events-none z-0" />
-
       {showIntro && <IntroScreen theme={theme} onComplete={() => setShowIntro(false)} />}
       
       <header className={`w-full max-w-7xl flex justify-between items-center mt-2 sm:mt-5 mb-3 sm:mb-6 relative z-[100] px-4 sm:px-8 transition-all duration-500 ${isKeyboardVisible ? 'opacity-0 -translate-y-24' : 'opacity-100 translate-y-0'}`}>
@@ -175,7 +172,11 @@ const App: React.FC = () => {
               </p>
             </div>
 
-            <div className="w-full flex flex-col items-center gap-3 sm:gap-5">
+            {/* HARD-ANCHORED CONTAINER: Structural binding for the background glow */}
+            <div className="w-full flex flex-col items-center gap-3 sm:gap-5 relative">
+              {/* PRIMARY BACKGROUND GLOW - Positioned absolutely behind the card container */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00D1FF]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+
               <SwapCard 
                 key={swapKey}
                 theme={theme} 
@@ -199,7 +200,10 @@ const App: React.FC = () => {
         )}
 
         {currentView === 'transactions' && (
-          <div className="w-full flex flex-col items-center text-center py-20">
+          <div className="w-full flex flex-col items-center text-center py-20 relative">
+             {/* Subtle Glow for Transactions View */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#00D1FF]/05 blur-[100px] rounded-full pointer-events-none -z-10" />
+             
              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                 <svg className="w-10 h-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
              </div>
