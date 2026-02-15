@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeVariant, SwapState, Chain, Token } from '../types';
-import { CHAINS, TOKENS } from '../constants';
+import { CHAINS, TOKENS } from '../services/constants.tsx';
 import ChainSelector from './ChainSelector';
 import TokenSelector from './TokenSelector';
 import { getLiveQuotes } from '../services/cmcService';

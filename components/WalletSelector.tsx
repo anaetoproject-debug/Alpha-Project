@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import { ThemeVariant } from '../types';
-import { WALLETS, WalletProvider } from '../constants';
+import { WALLETS, WalletProvider } from '../services/constants.tsx';
 import PilotBridgeSecurity from './PilotBridgeSecurity';
 
 interface WalletSelectorProps {

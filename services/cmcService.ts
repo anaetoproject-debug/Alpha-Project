@@ -1,4 +1,4 @@
-import { MOCK_NEWS } from '../constants';
+import { MOCK_NEWS } from './constants.tsx';
 
 /**
  * JetSwap Data Integration Service

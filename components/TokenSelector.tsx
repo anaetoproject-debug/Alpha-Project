@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Token, ThemeVariant } from '../types';
-import { TOKENS } from '../constants';
+import { TOKENS } from '../services/constants.tsx';
 
 interface TokenSelectorProps {
   isOpen: boolean;
@@ -70,7 +70,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
               />
             </div>
             <button onClick={onClose} className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all border shrink-0 ${
-              isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-gray-100 border-gray-200 hover:bg-gray-200 shadow-sm'
+              isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-100 border-gray-200 hover:bg-gray-200 shadow-sm'
             }`}>
               <svg className="w-5 h-5 sm:w-6 h-6 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />

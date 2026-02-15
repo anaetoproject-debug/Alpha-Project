@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Chain } from '../types';
-import { CHAINS } from '../constants';
+import { CHAINS } from '../services/constants.tsx';
 
 interface ChainSelectorProps {
   selected: Chain;

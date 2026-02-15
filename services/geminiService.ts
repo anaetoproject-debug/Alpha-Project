@@ -1,7 +1,6 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { CMCQuote, NewsItem } from "../types";
-import { MOCK_NEWS } from "../constants";
+import { MOCK_NEWS } from "./constants.tsx";
 
 /**
  * Lazy-load the AI client
