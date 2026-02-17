@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeVariant, SwapState, Chain, Token } from '../types';
-import { CHAINS, TOKENS } from '../services/constants.tsx';
+import { CHAINS, TOKENS, NETWORK_TOKEN_MAPPING } from '../services/constants.tsx';
 import ChainSelector from './ChainSelector';
 import TokenSelector from './TokenSelector';
 import { getLiveQuotes } from '../services/cmcService';
@@ -15,7 +15,7 @@ interface SwapCardProps {
 
 const INITIAL_PRICES: Record<string, number> = {
   'ETH': 2642.15, 'BNB': 584.20, 'SOL': 142.50, 'TRX': 0.12, 'AVAX': 34.80,
-  'TON': 5.20, 'CRO': 0.08, 'ARB': 0.95, 'MATIC': 0.52, 'GNO': 185.00,
+  'TON': 5.20, 'CRO': 0.08, 'ARB': 0.95, 'POL': 0.52, 'GNO': 185.00,
   'OP': 1.65, 'USDC': 1.00, 'USDT': 1.00,
 };
 
@@ -27,8 +27,8 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, walletConnected, onConfirm, 
   const [state, setState] = useState<SwapState>({
     sourceChain: CHAINS[0],
     destChain: CHAINS[0], // Synchronized by default for SWAP
-    sourceToken: TOKENS[0],
-    destToken: TOKENS[0],
+    sourceToken: TOKENS.find(t => t.symbol === 'ETH') || TOKENS[0],
+    destToken: TOKENS.find(t => t.symbol === 'USDT') || TOKENS[0],
     amount: '',
     estimatedOutput: ''
   });
@@ -86,29 +86,59 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, walletConnected, onConfirm, 
     }));
   };
 
+  const getValidTokenForNetwork = (networkName: string): Token => {
+    const allowed = NETWORK_TOKEN_MAPPING[networkName] || [];
+    return TOKENS.find(t => allowed.includes(t.symbol)) || TOKENS[0];
+  };
+
   const handleSourceChainSelect = (chain: Chain) => {
+    const validToken = getValidTokenForNetwork(chain.name);
     if (intent === 'swap') {
-      // BI-DIRECTIONAL LOCK: Update both selectors simultaneously
-      setState(prev => ({ ...prev, sourceChain: chain, destChain: chain }));
+      setState(prev => ({ 
+        ...prev, 
+        sourceChain: chain, 
+        destChain: chain,
+        sourceToken: validToken,
+        destToken: TOKENS.find(t => t.symbol === 'USDT' && NETWORK_TOKEN_MAPPING[chain.name].includes('USDT')) || validToken
+      }));
     } else {
-      setState(prev => ({ ...prev, sourceChain: chain }));
+      setState(prev => ({ 
+        ...prev, 
+        sourceChain: chain,
+        sourceToken: validToken
+      }));
     }
   };
 
   const handleDestChainSelect = (chain: Chain) => {
+    const validToken = getValidTokenForNetwork(chain.name);
     if (intent === 'swap') {
-      // BI-DIRECTIONAL LOCK: Update both selectors simultaneously
-      setState(prev => ({ ...prev, sourceChain: chain, destChain: chain }));
+      setState(prev => ({ 
+        ...prev, 
+        sourceChain: chain, 
+        destChain: chain,
+        sourceToken: validToken,
+        destToken: TOKENS.find(t => t.symbol === 'USDT' && NETWORK_TOKEN_MAPPING[chain.name].includes('USDT')) || validToken
+      }));
     } else {
-      setState(prev => ({ ...prev, destChain: chain }));
+      setState(prev => ({ 
+        ...prev, 
+        destChain: chain,
+        destToken: validToken
+      }));
     }
   };
 
   const toggleIntent = (newIntent: 'swap' | 'bridge') => {
     setIntent(newIntent);
     if (newIntent === 'swap') {
-      // Ensure shared network state when entering swap mode
-      setState(prev => ({ ...prev, destChain: prev.sourceChain }));
+      const validToken = getValidTokenForNetwork(state.sourceChain.name);
+      setState(prev => ({ 
+        ...prev, 
+        destChain: prev.sourceChain,
+        sourceToken: validToken,
+        destToken: TOKENS.find(t => t.symbol === 'USDT' && NETWORK_TOKEN_MAPPING[prev.sourceChain.name].includes('USDT')) || validToken
+      }));
     }
   };
 
@@ -244,6 +274,7 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, walletConnected, onConfirm, 
           else setState(prev => ({ ...prev, destToken: t }));
         }}
         theme={ThemeVariant.DARK_FUTURISTIC}
+        networkName={isTokenSelectorOpen === 'source' ? state.sourceChain.name : state.destChain.name}
       />
     </div>
   );

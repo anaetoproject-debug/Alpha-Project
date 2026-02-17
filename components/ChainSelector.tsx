@@ -11,104 +11,17 @@ interface ChainSelectorProps {
   isMinimal?: boolean;
 }
 
-// Isolated asset map for tokens to satisfy requirement
-const TOKEN_ASSETS: Record<string, string> = {
-  "ETH": "https://cryptologos.cc/logos/ethereum-eth-logo.png",
-  "USDT": "https://cryptologos.cc/logos/tether-usdt-logo.png",
-  "USDC": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-  "USDS": "https://assets.coingecko.com/coins/images/39906/large/usds.png",
-  "DAI": "https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png",
-  "stETH": "https://assets.coingecko.com/coins/images/13442/large/steth_logo.png",
-  "WETH": "https://assets.coingecko.com/coins/images/2518/large/weth.png",
-  "WBTC": "https://cryptologos.cc/logos/wrapped-bitcoin-wbtc-logo.png",
-  "SHIBA INU": "https://cryptologos.cc/logos/shiba-inu-shib-logo.png",
-  "UNI": "https://cryptologos.cc/logos/uniswap-uni-logo.png",
-  "PEPE": "https://assets.coingecko.com/coins/images/29850/large/pepe-token.jpeg",
-  "LINK": "https://cryptologos.cc/logos/chainlink-link-logo.png",
-  "BNB": "https://cryptologos.cc/logos/binance-coin-bnb-logo.png",
-  "BUSD": "https://cryptologos.cc/logos/binance-usd-busd-logo.png",
-  "CAKE": "https://cryptologos.cc/logos/pancakeswap-cake-logo.png",
-  "cbBTC": "https://assets.coingecko.com/coins/images/39114/large/cbbtc.png",
-  "SOL": "https://cryptologos.cc/logos/solana-sol-logo.png",
-  "USD1": "https://assets.coingecko.com/coins/images/34135/large/usd1.png",
-  "TRUMP": "https://assets.coingecko.com/coins/images/31422/large/trump.png",
-  "ZBCN": "https://assets.coingecko.com/coins/images/36203/large/zbcn.png",
-  "PUMP": "https://assets.coingecko.com/coins/images/36386/large/pump.png",
-  "JUP": "https://assets.coingecko.com/coins/images/34188/large/jup.png",
-  "POL": "https://assets.coingecko.com/coins/images/39218/large/polygon-ecosystem-token.png",
-  "ARB": "https://cryptologos.cc/logos/arbitrum-arb-logo.png",
-  "TRX": "https://cryptologos.cc/logos/tron-trx-logo.png",
-  "AVAX": "https://cryptologos.cc/logos/avalanche-avax-logo.png",
-  "OP": "https://cryptologos.cc/logos/optimism-ethereum-op-logo.png",
-  "WCT": "https://assets.coingecko.com/coins/images/38901/large/wct.png",
-  "TON": "https://cryptologos.cc/logos/toncoin-ton-logo.png",
-  "NOT": "https://assets.coingecko.com/coins/images/37850/large/notcoin.png",
-  "SUI": "https://cryptologos.cc/logos/sui-sui-logo.png",
-  "CRO": "https://cryptologos.cc/logos/crypto-com-coin-cro-logo.png",
-  "TONIC": "https://assets.coingecko.com/coins/images/21867/large/tectonic.png"
-};
-
-const NETWORK_TOKEN_MAPPING: Record<string, string[]> = {
-  "ETH Network": ["ETH", "USDT", "USDC", "USDS", "DAI", "stETH", "WETH", "WBTC", "SHIBA INU", "UNI", "PEPE", "LINK"],
-  "BNB Network": ["BNB", "BUSD", "USDT", "USDC", "USDS", "SHIBA INU", "CAKE", "LINK"],
-  "BASE Network": ["ETH", "USDT", "USDC", "USDS", "cbBTC", "LINK"],
-  "SOLANA Network": ["SOL", "USDT", "USDC", "USD1", "TRUMP", "ZBCN", "PUMP", "JUP", "LINK"],
-  "POLYGON Network": ["POL", "UNI", "USDT", "USDC", "DAI", "LINK", "WETH"],
-  "ARBITRUM Network": ["ARB", "ETH", "DAI", "USDT", "USDC", "UNI", "LINK"],
-  "TRON Network": ["TRX", "USDT", "USDC"],
-  "AVALANCHE C-CHAIN": ["AVAX", "USDT", "USDC", "ETH"],
-  "OP MAINNET": ["ETH", "DAI", "LINK", "WETH", "OP", "WCT", "USDT", "USDC"],
-  "TON Network": ["TON", "USDT", "NOT"],
-  "SUI Network": ["SUI", "USDT", "USDC"],
-  "CRONOS Network": ["CRO", "USDT", "USDC", "TONIC"]
-};
-
-const TOKEN_ITEMS: Chain[] = Object.keys(TOKEN_ASSETS).map(symbol => ({
-  id: `token-${symbol.toLowerCase()}`,
-  name: symbol,
-  icon: TOKEN_ASSETS[symbol],
-  color: '#00D1FF'
-}));
-
 const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label, theme, isMinimal }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
 
   const isDark = theme === 'DARK_FUTURISTIC' || theme === 'GLASSMORPHISM';
 
-  const categories = [
-    'All',
-    'ETH Network',
-    'BNB Network',
-    'BASE Network',
-    'SOLANA Network',
-    'POLYGON Network',
-    'ARBITRUM Network',
-    'TRON Network',
-    'AVALANCHE C-CHAIN',
-    'OP MAINNET',
-    'TON Network',
-    'SUI Network',
-    'CRONOS Network'
-  ];
-
   const filteredItems = useMemo(() => {
-    let baseList: Chain[] = [];
-    if (activeTab === 'All') {
-      // Requirement: ALL: Display all existing chains and all newly added tokens
-      baseList = [...CHAINS, ...TOKEN_ITEMS];
-    } else {
-      // Requirement: network_tab: Display only tokens associated with the selected network
-      const allowedSymbols = NETWORK_TOKEN_MAPPING[activeTab] || [];
-      baseList = TOKEN_ITEMS.filter(t => allowedSymbols.includes(t.name));
-    }
-    
-    // Requirement: search: Must continue to work across all chains and tokens
-    return baseList.filter(item => 
+    return CHAINS.filter(item => 
       item.name.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search, activeTab]);
+  }, [search]);
 
   const getButtonStyles = () => {
     if (isMinimal) return 'bg-transparent border-none p-0 hover:bg-transparent';
@@ -126,7 +39,7 @@ const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label
         <div className="sm:hidden w-12 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-1 shrink-0" />
 
         <div className="px-5 sm:px-10 pt-4 pb-4 shrink-0">
-          <div className="flex items-center gap-3 sm:gap-4 mb-4">
+          <div className="flex items-center gap-3 sm:gap-4 mb-2">
             <div className={`flex-1 group flex items-center gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-[20px] sm:rounded-[24px] border transition-all duration-300 ${
               isDark ? 'bg-white/5 border-white/5 focus-within:border-emerald-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-500 shadow-inner'
             }`}>
@@ -135,7 +48,7 @@ const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label
               </svg>
               <input 
                 type="text" 
-                placeholder="Search chains..." 
+                placeholder="Search networks..." 
                 className="bg-transparent border-none outline-none w-full text-xs sm:text-sm font-bold placeholder:opacity-40"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -146,22 +59,6 @@ const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label
             }`}>
               <svg className="w-5 h-5 sm:w-6 h-6 opacity-40 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveTab(cat)}
-                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border ${
-                  activeTab === cat 
-                    ? (isDark ? 'bg-cyan-500 text-black border-cyan-500 shadow-lg' : 'bg-blue-600 text-white border-blue-600 shadow-lg')
-                    : (isDark ? 'bg-white/5 border-white/5 text-white/40 hover:text-white' : 'bg-white border-gray-200 text-slate-400')
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -202,7 +99,7 @@ const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label
 
         <div className={`p-4 sm:p-6 border-t shrink-0 ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
            <p className="text-[7px] sm:text-[9px] font-bold opacity-40 leading-relaxed text-center uppercase tracking-[0.2em] max-w-sm mx-auto">
-             connect pilot to import 20+ chains
+             12 GLOBAL NETWORKS SYNCHRONIZED
            </p>
         </div>
       </div>

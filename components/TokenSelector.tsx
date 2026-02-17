@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Token, ThemeVariant } from '../types';
-import { TOKENS } from '../services/constants.tsx';
+import { TOKENS, NETWORK_TOKEN_MAPPING } from '../services/constants.tsx';
 
 interface TokenSelectorProps {
   isOpen: boolean;
@@ -9,10 +9,10 @@ interface TokenSelectorProps {
   selected: Token;
   onSelect: (token: Token) => void;
   theme: ThemeVariant;
-  isKeyboardVisible?: boolean;
+  networkName: string;
 }
 
-const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected, onSelect, theme, isKeyboardVisible }) => {
+const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected, onSelect, theme, networkName }) => {
   const [search, setSearch] = useState('');
   const isDark = theme === ThemeVariant.DARK_FUTURISTIC;
 
@@ -31,14 +31,17 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
     }
   }, [isOpen]);
 
-  const popularTokens = useMemo(() => TOKENS.slice(0, 5), []);
+  const networkTokens = useMemo(() => {
+    const allowedSymbols = NETWORK_TOKEN_MAPPING[networkName] || [];
+    return TOKENS.filter(t => allowedSymbols.includes(t.symbol));
+  }, [networkName]);
 
   const filteredTokens = useMemo(() => {
-    return TOKENS.filter(t => 
+    return networkTokens.filter(t => 
       t.symbol.toLowerCase().includes(search.toLowerCase()) || 
       t.name.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);
+  }, [search, networkTokens]);
 
   if (!isOpen) return null;
 
@@ -54,54 +57,39 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
         <div className="sm:hidden w-12 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-1 shrink-0" />
         
         <div className="px-5 sm:px-10 pt-4 pb-4 shrink-0 bg-inherit">
-          <div className="flex items-center gap-3 sm:gap-4 mb-4">
-            <div className={`flex-1 group flex items-center gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-[20px] sm:rounded-[24px] border transition-all duration-300 ${
-              isDark ? 'bg-white/5 border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-600 shadow-inner'
-            }`}>
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth={3}/>
-              </svg>
-              <input 
-                type="text" 
-                placeholder="Search token name or symbol..." 
-                className="bg-transparent border-none outline-none w-full text-xs sm:text-sm font-bold placeholder:opacity-40"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <button onClick={onClose} className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all border shrink-0 ${
-              isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-100 border-gray-200 hover:bg-gray-200 shadow-sm'
-            }`}>
-              <svg className="w-5 h-5 sm:w-6 h-6 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          <div className="flex items-center justify-between mb-4">
+             <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 px-1">Active Network</p>
+                <p className="text-sm font-black text-[#00D1FF] px-1">{networkName}</p>
+             </div>
+             <button onClick={onClose} className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all border shrink-0 ${
+                isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-100 border-gray-200 hover:bg-gray-200 shadow-sm'
+              }`}>
+                <svg className="w-5 h-5 sm:w-6 h-6 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
           </div>
 
-          <div className={`transition-all duration-300 ${search ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-2 px-1">Popular Assets</p>
-            <div className="flex flex-wrap gap-2 overflow-x-auto no-scrollbar pb-1">
-              {popularTokens.map(token => (
-                <button
-                  key={token.symbol}
-                  onClick={() => { onSelect(token); onClose(); }}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl border transition-all active:scale-95 shrink-0 ${
-                    isDark 
-                      ? 'bg-white/5 border-white/5 hover:bg-white/[0.08] text-white' 
-                      : 'bg-white border-gray-200 hover:border-blue-600 text-slate-700 shadow-sm'
-                  }`}
-                >
-                  <img src={token.icon} alt="" className="w-4 h-4 object-contain" />
-                  <span className="text-[10px] font-black tracking-widest uppercase">{token.symbol}</span>
-                </button>
-              ))}
-            </div>
+          <div className={`flex group items-center gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-[20px] sm:rounded-[24px] border transition-all duration-300 ${
+            isDark ? 'bg-white/5 border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-600 shadow-inner'
+          }`}>
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth={3}/>
+            </svg>
+            <input 
+              type="text" 
+              placeholder={`Search tokens on ${networkName}...`} 
+              className="bg-transparent border-none outline-none w-full text-xs sm:text-sm font-bold placeholder:opacity-40"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 sm:p-10 pt-0 custom-scrollbar overscroll-contain bg-inherit">
           <div className="space-y-1.5 pb-12">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-3 px-2">Asset Directory</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-3 px-2">Ecosystem Tokens</p>
             {filteredTokens.map((token) => (
               <button
                 key={token.symbol}
@@ -133,7 +121,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
             {filteredTokens.length === 0 && (
               <div className="py-24 text-center opacity-20 flex flex-col items-center gap-4">
                 <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.5}><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <p className="text-[11px] font-black uppercase tracking-[0.4em]">Operational Scan: Zero Results</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.4em]">Network Scan: No assets found</p>
               </div>
             )}
           </div>
@@ -141,7 +129,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
 
         <div className={`p-4 sm:p-6 border-t shrink-0 ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
           <p className="text-[7px] font-bold opacity-30 text-center uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
-            connect pilot to import 1000+ tokens
+            Switch network to access more token pairs
           </p>
         </div>
       </div>
