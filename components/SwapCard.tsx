@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeVariant, SwapState, Chain, Token } from '../types';
 import { CHAINS, TOKENS, NETWORK_TOKEN_MAPPING } from '../services/constants.tsx';
@@ -196,7 +197,6 @@ const SwapCard: React.FC<SwapCardProps> = ({ theme, walletConnected, onConfirm, 
             <input 
               type="number" 
               placeholder="0.0" 
-              autoFocus
               className="bg-transparent border-none outline-none flex-1 text-3xl sm:text-4xl font-black text-white placeholder:text-white/10 w-full tracking-tighter"
               value={state.amount}
               onChange={(e) => setState(prev => ({ ...prev, amount: e.target.value }))}

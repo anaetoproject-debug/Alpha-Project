@@ -98,8 +98,8 @@ const ChainSelector: React.FC<ChainSelectorProps> = ({ selected, onSelect, label
         </div>
 
         <div className={`p-4 sm:p-6 border-t shrink-0 ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-           <p className="text-[7px] sm:text-[9px] font-bold opacity-40 leading-relaxed text-center uppercase tracking-[0.2em] max-w-sm mx-auto">
-             12 GLOBAL NETWORKS SYNCHRONIZED
+           <p className="text-[9px] sm:text-[11px] font-black opacity-60 leading-relaxed text-center uppercase tracking-[0.2em] max-w-sm mx-auto antialiased">
+             CONNECT PILOT TO IMPORT 20+ CHAINS
            </p>
         </div>
       </div>

