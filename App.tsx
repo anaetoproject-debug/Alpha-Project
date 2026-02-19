@@ -198,16 +198,8 @@ const App: React.FC = () => {
       <main className="flex-1 w-full max-w-7xl flex flex-col items-center px-4 relative z-10 overflow-visible">
         {currentView === 'home' && (
           <div className="w-full flex flex-col items-center">
-            <div className={`transition-all duration-700 text-center ${isKeyboardVisible ? 'opacity-0 scale-95 h-0 overflow-hidden mb-0' : 'opacity-100 scale-100 mb-3 sm:mb-6'}`}>
-              <h1 className="text-[20px] sm:text-4xl font-black text-white mb-1.5 tracking-tighter max-w-2xl leading-tight">
-                JET ENGINE 24HOUR <span className="text-[#00D1FF] italic font-black">SWAP VOLUME : $133M</span>
-              </h1>
-              <p className="text-[8px] sm:text-[10px] font-bold text-white/40 uppercase tracking-[0.25em] px-6">
-                FAST SWAPS, SMART BRIDGING & DEEP LIQUIDITY
-              </p>
-            </div>
-
-            <div className="w-full flex flex-col items-center gap-3 sm:gap-5 relative">
+            {/* Header text block removed as per user request to shift SwapCard upward */}
+            <div className="w-full flex flex-col items-center gap-3 sm:gap-5 relative mt-4 sm:mt-8">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00D1FF]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
               <SwapCard 
@@ -219,13 +211,13 @@ const App: React.FC = () => {
                 isKeyboardVisible={isKeyboardVisible}
               />
               
-              <div className="w-full max-w-[440px] p-3 rounded-[20px] border bg-[#101726]/30 border-white/[0.03] flex items-center gap-3 transition-all duration-300">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0 border border-cyan-500/20 text-cyan-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="w-full max-w-[440px] p-4 sm:p-5 rounded-[24px] border bg-[#101726]/30 border-white/[0.03] flex items-center gap-4 transition-all duration-300">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0 border border-cyan-500/20 text-cyan-400">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div>
-                  <h4 className="text-[8px] font-black uppercase tracking-[0.15em] text-[#00D1FF] mb-0.5">JET ENGINE 24HOUR SWAP VOLUME : $133M</h4>
-                  <p className="text-[10px] font-bold text-white leading-tight opacity-70">FAST SWAPS, SMART BRIDGING & DEEP LIQUIDITY</p>
+                  <h4 className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.15em] text-[#00D1FF] mb-1 leading-none">JET ENGINE 24HOUR SWAP VOLUME : $133M</h4>
+                  <p className="text-[13px] sm:text-[14px] font-bold text-white leading-tight opacity-70">FAST SWAPS, SMART BRIDGING & DEEP LIQUIDITY</p>
                 </div>
               </div>
             </div>
